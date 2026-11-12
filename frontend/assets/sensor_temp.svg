@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <rect x="10" y="10" width="80" height="80" rx="12" fill="#1a237e" stroke="#42a5f5" stroke-width="2"/>
+  <circle cx="50" cy="46" r="22" fill="#283593" stroke="#90caf9" stroke-width="3"/>
+  <circle cx="50" cy="46" r="14" fill="#3f51b5"/>
+  <line x1="50" y1="46" x2="62" y2="34" stroke="#ffca28" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="50" cy="46" r="3" fill="#ffffff"/>
+  <text x="50" y="84" fill="#90caf9" font-size="8" font-family="sans-serif" text-anchor="middle" font-weight="bold">Rotary Thermostat</text>
+</svg>
+
