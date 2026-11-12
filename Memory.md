@@ -97,9 +97,11 @@ Instead of naive isolated thresholding (*"turn fan on if temperature $> 28^\circ
 ```
 c:\Users\Withe\OneDrive\Desktop\LAB5\
 ├── run_ide.py                          # Main one-click launcher for the IDE server
-├── package_submission.py               # Generates Atlas_IoT_IDE_GroupProject_Submission.zip
 ├── README.md                           # Quick start guide
 ├── Memory.md                           # This persistent memory and context file
+├── guides/                             # Official assignment guides & lecture slides
+│   ├── group_project Fall 2026.pdf     # Professor Sumi Helal's project specification
+│   └── Module 13 Atlas IoT IDE Project.pptx # Lecture slides & IDE concepts
 ├── apps_storage/                       # Default "Atlas working directory"
 │   ├── circadian_guard.iot             # BioComfort Circadian & Hazard Guardian app
 │   └── lab4_demo.iot                   # Baseline Lab 4 Part II demo app
