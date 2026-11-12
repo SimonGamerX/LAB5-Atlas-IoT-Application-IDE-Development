@@ -1,343 +1,246 @@
 /**
  * Atlas IoT Application Editor (GUI + Text Hybrid)
- * Requirement 3: Drag & Drop Palette, Step Configuration, Type 1-5 Constructs,
- * Clear, Finalize, and Save operations.
+ * Requirement 3: Constructs Type 1, Type 2, Type 3, Clear, Finalize, and Save.
  */
 
 class IoTAppEditor {
-  constructor(canvasElementId, jsonEditorId, paletteElementId) {
-    this.canvas = document.getElementById(canvasElementId);
-    this.jsonEditor = document.getElementById(jsonEditorId);
-    this.palette = document.getElementById(paletteElementId);
+  constructor() {
     this.steps = [];
     this.availableServices = [];
-    this.currentAppName = "NewAtlasApp";
-    this.currentAppDesc = "Custom composed IoT workflow";
-    this.isLooping = false;
-    this.loopInterval = 3;
+    this.initModeToggles();
+  }
 
-    this.initEventListeners();
+  initModeToggles() {
+    const btnVisual = document.getElementById("btnModeVisual");
+    const btnJson = document.getElementById("btnModeJson");
+    const stepsBox = document.getElementById("canvasStepsList");
+    const jsonBox = document.getElementById("canvasJsonContainer");
+
+    btnVisual?.addEventListener("click", () => {
+      btnVisual.classList.add("active");
+      btnJson?.classList.remove("active");
+      stepsBox.style.display = "flex";
+      jsonBox.style.display = "none";
+      this.syncFromJson();
+      this.render();
+    });
+
+    btnJson?.addEventListener("click", () => {
+      btnJson.classList.add("active");
+      btnVisual?.classList.remove("active");
+      stepsBox.style.display = "none";
+      jsonBox.style.display = "block";
+      this.syncToJson();
+    });
+
+    // Construct buttons
+    document.querySelectorAll(".btn-construct").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.addStep(btn.dataset.type);
+      });
+    });
   }
 
   setServices(services) {
     this.availableServices = services || [];
     this.renderPalette();
-    this.renderCanvas();
-  }
-
-  initEventListeners() {
-    // Construct buttons
-    document.querySelectorAll(".btn-construct").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const type = btn.dataset.type;
-        this.addStep(type);
-      });
-    });
-
-    // View toggles: Visual Canvas vs JSON
-    const btnVisual = document.getElementById("btnViewVisual");
-    const btnJson = document.getElementById("btnViewJson");
-    const canvasSteps = document.getElementById("canvasStepsList");
-    const canvasJson = document.getElementById("canvasJsonContainer");
-
-    btnVisual?.addEventListener("click", () => {
-      btnVisual.classList.add("active");
-      btnJson.classList.remove("active");
-      canvasSteps.style.display = "flex";
-      canvasJson.style.display = "none";
-      this.syncFromJson();
-      this.renderCanvas();
-    });
-
-    btnJson?.addEventListener("click", () => {
-      btnJson.classList.add("active");
-      btnVisual.classList.remove("active");
-      canvasSteps.style.display = "none";
-      canvasJson.style.display = "block";
-      this.syncToJson();
-    });
+    this.render();
   }
 
   renderPalette() {
-    if (!this.palette) return;
-    this.palette.innerHTML = "";
+    const container = document.getElementById("paletteServicesList");
+    if (!container) return;
+    container.innerHTML = "";
 
     this.availableServices.forEach(s => {
-      const item = document.createElement("div");
-      item.className = "palette-item";
-      item.draggable = true;
-      item.innerHTML = `
-        <span>${s.name}</span>
-        <span class="service-type-badge ${s.is_sensor ? 'sensor' : 'actuator'}">${s.is_sensor ? 'S' : 'A'}</span>
-      `;
-
-      item.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", JSON.stringify({ service_name: s.name, is_sensor: s.is_sensor }));
-      });
-
-      // Click to add
-      item.addEventListener("click", () => {
+      const btn = document.createElement("button");
+      btn.className = "palette-srv-btn";
+      btn.innerHTML = `+ ${s.name} <span style="font-size:0.65rem; color:${s.is_sensor ? '#34d399' : '#f87171'}">[${s.is_sensor ? 'Sensor' : 'Actuator'}]</span>`;
+      btn.addEventListener("click", () => {
         this.addStep("Type1", s.name);
       });
-
-      this.palette.appendChild(item);
+      container.appendChild(btn);
     });
-
-    // Allow dropping into canvas
-    const canvasSteps = document.getElementById("canvasStepsList");
-    if (canvasSteps) {
-      canvasSteps.addEventListener("dragover", (e) => e.preventDefault());
-      canvasSteps.addEventListener("drop", (e) => {
-        e.preventDefault();
-        try {
-          const raw = e.dataTransfer.getData("text/plain");
-          const data = JSON.parse(raw);
-          if (data && data.service_name) {
-            this.addStep("Type1", data.service_name);
-          }
-        } catch (err) {}
-      });
-    }
   }
 
   addStep(type, defaultService = "") {
-    const sName = defaultService || (this.availableServices[0] ? this.availableServices[0].name : "Read_Temperature");
-    const sTarget = this.availableServices[1] ? this.availableServices[1].name : (this.availableServices[0] ? this.availableServices[0].name : "Set_Cooling_Indicator");
+    const s1 = defaultService || (this.availableServices[0] ? this.availableServices[0].name : "Read_Temperature");
+    const s2 = this.availableServices[1] ? this.availableServices[1].name : (this.availableServices[0] ? this.availableServices[0].name : "Set_Cooling_Indicator");
 
-    let step = {
+    const newStep = {
       step_index: this.steps.length + 1,
       type: type,
-      description: `Step #${this.steps.length + 1} (${type})`
+      description: `Step #${this.steps.length + 1}`
     };
 
     if (type === "Type1") {
-      step.service = sName;
-      step.inputs = "()";
+      newStep.service = s1;
+      newStep.inputs = "()";
     } else if (type === "Type2") {
-      step.service_a = sName;
-      step.service_b = sTarget;
-      step.inputs_a = "()";
-      step.inputs_b = "(1)";
+      newStep.service_a = s1;
+      newStep.service_b = s2;
+      newStep.inputs_a = "()";
+      newStep.inputs_b = "(1)";
     } else if (type === "Type3") {
-      step.service_a = sName;
-      step.service_b = sTarget;
-      step.operator = ">";
-      step.threshold = 28;
-      step.inputs_a = "()";
-      step.inputs_b = "(1)";
-      step.else_service = sTarget;
-      step.else_inputs = "(0)";
-    } else if (type === "Type5") {
-      step.logic_op = "AND";
-      step.condition1 = { service: "Read_Light_Level", operator: "<", threshold: 20 };
-      step.condition2 = { service: "Read_Temperature", operator: ">", threshold: 30 };
-      step.action_service = "Set_Alarm_LED";
-      step.action_inputs = "(1)";
+      newStep.service_a = s1;
+      newStep.operator = ">";
+      newStep.threshold = 28;
+      newStep.service_b = s2;
+      newStep.inputs_b = "(1)";
+      newStep.else_service = s2;
+      newStep.else_inputs = "(0)";
     }
 
-    this.steps.push(step);
-    this.renderCanvas();
+    this.steps.push(newStep);
+    this.render();
     this.syncToJson();
   }
 
   removeStep(index) {
     this.steps.splice(index, 1);
-    this.steps.forEach((s, idx) => {
-      s.step_index = idx + 1;
-    });
-    this.renderCanvas();
+    this.steps.forEach((s, i) => { s.step_index = i + 1; });
+    this.render();
     this.syncToJson();
   }
 
   clear() {
     this.steps = [];
-    this.currentAppName = "NewAtlasApp";
-    this.currentAppDesc = "Custom composed IoT workflow";
-    this.isLooping = false;
-    this.loopInterval = 3;
-    const nameInput = document.getElementById("appInputName");
-    const descInput = document.getElementById("appInputDesc");
-    const loopChk = document.getElementById("chkAppLoop");
-    if (nameInput) nameInput.value = this.currentAppName;
-    if (descInput) descInput.value = this.currentAppDesc;
-    if (loopChk) loopChk.checked = false;
-
-    this.renderCanvas();
+    document.getElementById("appInputName").value = "NewApp";
+    document.getElementById("appInputDesc").value = "Custom composed IoT app";
+    document.getElementById("chkAppLoop").checked = false;
+    this.render();
     this.syncToJson();
   }
 
   loadApp(appData) {
     if (!appData) return;
-    this.currentAppName = appData.name || "LoadedApp";
-    this.currentAppDesc = appData.description || "";
-    this.isLooping = !!appData.loop;
-    this.loopInterval = appData.loop_interval_sec || 3;
     this.steps = appData.steps || [];
-
-    const nameInput = document.getElementById("appInputName");
-    const descInput = document.getElementById("appInputDesc");
-    const loopChk = document.getElementById("chkAppLoop");
-    const loopNum = document.getElementById("numLoopInterval");
-
-    if (nameInput) nameInput.value = this.currentAppName;
-    if (descInput) descInput.value = this.currentAppDesc;
-    if (loopChk) loopChk.checked = this.isLooping;
-    if (loopNum) loopNum.value = this.loopInterval;
-
-    this.renderCanvas();
+    document.getElementById("appInputName").value = appData.name || "LoadedApp";
+    document.getElementById("appInputDesc").value = appData.description || "";
+    document.getElementById("chkAppLoop").checked = !!appData.loop;
+    document.getElementById("numLoopInterval").value = appData.loop_interval_sec || 3;
+    this.render();
     this.syncToJson();
   }
 
   getAppDefinition() {
-    const nameInput = document.getElementById("appInputName");
-    const descInput = document.getElementById("appInputDesc");
-    const loopChk = document.getElementById("chkAppLoop");
-    const loopNum = document.getElementById("numLoopInterval");
-
-    const appName = nameInput ? nameInput.value.trim() : this.currentAppName;
-    const sanitizedName = appName.replace(/[^a-zA-Z0-9_\-]/g, "_") || "atlas_app";
+    const rawName = document.getElementById("appInputName")?.value.trim() || "atlas_app";
+    const sanitizedName = rawName.replace(/[^a-zA-Z0-9_\-]/g, "_");
+    const desc = document.getElementById("appInputDesc")?.value.trim() || "";
+    const isLoop = document.getElementById("chkAppLoop")?.checked || false;
+    const loopInterval = parseFloat(document.getElementById("numLoopInterval")?.value) || 3.0;
 
     return {
       name: sanitizedName,
-      description: descInput ? descInput.value.trim() : this.currentAppDesc,
-      loop: loopChk ? loopChk.checked : false,
-      loop_interval_sec: loopNum ? parseFloat(loopNum.value) || 3.0 : 3.0,
+      description: desc,
+      loop: isLoop,
+      loop_interval_sec: loopInterval,
       steps: this.steps
     };
   }
 
   syncToJson() {
-    if (!this.jsonEditor) return;
-    const def = this.getAppDefinition();
-    this.jsonEditor.value = JSON.stringify(def, null, 2);
+    const textarea = document.getElementById("appJsonEditor");
+    if (textarea) {
+      textarea.value = JSON.stringify(this.getAppDefinition(), null, 2);
+    }
   }
 
   syncFromJson() {
-    if (!this.jsonEditor) return;
+    const textarea = document.getElementById("appJsonEditor");
+    if (!textarea) return;
     try {
-      const data = JSON.parse(this.jsonEditor.value);
-      if (data && Array.isArray(data.steps)) {
-        this.steps = data.steps;
-        this.currentAppName = data.name || this.currentAppName;
-        this.currentAppDesc = data.description || this.currentAppDesc;
-        this.isLooping = !!data.loop;
+      const parsed = JSON.parse(textarea.value);
+      if (parsed && Array.isArray(parsed.steps)) {
+        this.steps = parsed.steps;
+        document.getElementById("appInputName").value = parsed.name || "LoadedApp";
+        document.getElementById("appInputDesc").value = parsed.description || "";
+        document.getElementById("chkAppLoop").checked = !!parsed.loop;
       }
     } catch (e) {}
   }
 
-  renderCanvas() {
+  render() {
     const container = document.getElementById("canvasStepsList");
     if (!container) return;
     container.innerHTML = "";
 
     if (this.steps.length === 0) {
       container.innerHTML = `
-        <div style="text-align:center; padding:40px; color:#64748b;">
-          <p style="font-size:1.1rem; margin-bottom:8px;">Canvas is empty.</p>
-          <p style="font-size:0.85rem;">Click a construct button on the left or drag a service to add steps.</p>
+        <div style="text-align:center; padding:30px; color:#64748b;">
+          <p>Canvas is empty.</p>
+          <p style="font-size:0.8rem; margin-top:4px;">Click a construct button on the left to add your first execution step.</p>
         </div>
       `;
       return;
     }
 
+    const options = this.availableServices.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
+
     this.steps.forEach((step, idx) => {
       const card = document.createElement("div");
       card.className = "step-card";
 
-      // Service option dropdown options
-      const serviceOptions = this.availableServices.map(s => 
-        `<option value="${s.name}">${s.name}</option>`
-      ).join("");
-
-      let bodyHtml = "";
-
-      // TYPE 1: Sequential
+      let inner = "";
       if (step.type === "Type1") {
-        bodyHtml = `
-          <span>Run Service:</span>
-          <select class="step-input" data-field="service">${serviceOptions}</select>
-          <span>with inputs:</span>
-          <input type="text" class="step-input" data-field="inputs" value="${step.inputs || '()'}" style="width:80px;">
+        inner = `
+          <span>Run:</span>
+          <select data-key="service">${options}</select>
+          <span>with args:</span>
+          <input type="text" data-key="inputs" value="${step.inputs || '()'}" style="width:70px;">
         `;
-      }
-      // TYPE 2: Order-based
-      else if (step.type === "Type2") {
-        bodyHtml = `
-          <span>If Service:</span>
-          <select class="step-input" data-field="service_a">${serviceOptions}</select>
-          <span>runs to completion &rarr; Then Run:</span>
-          <select class="step-input" data-field="service_b">${serviceOptions}</select>
+      } else if (step.type === "Type2") {
+        inner = `
+          <span>If</span>
+          <select data-key="service_a">${options}</select>
+          <span>succeeds &rarr; Then Run:</span>
+          <select data-key="service_b">${options}</select>
           <span>(args:</span>
-          <input type="text" class="step-input" data-field="inputs_b" value="${step.inputs_b || '(1)'}" style="width:60px;">
+          <input type="text" data-key="inputs_b" value="${step.inputs_b || '(1)'}" style="width:50px;">
           <span>)</span>
         `;
-      }
-      // TYPE 3: Condition-based
-      else if (step.type === "Type3") {
-        bodyHtml = `
-          <span>If Service:</span>
-          <select class="step-input" data-field="service_a">${serviceOptions}</select>
-          <span>return value</span>
-          <select class="step-input" data-field="operator">
+      } else if (step.type === "Type3") {
+        inner = `
+          <span>If</span>
+          <select data-key="service_a">${options}</select>
+          <span>returns</span>
+          <select data-key="operator">
             <option value=">">&gt;</option>
             <option value="<">&lt;</option>
             <option value="==">==</option>
             <option value="!=">!=</option>
-            <option value=">=">&gt;=</option>
-            <option value="<=">&lt;=</option>
           </select>
-          <input type="number" class="step-input" data-field="threshold" value="${step.threshold ?? 28}" style="width:60px;">
+          <input type="number" data-key="threshold" value="${step.threshold ?? 28}" style="width:50px;">
           <span>&rarr; Run:</span>
-          <select class="step-input" data-field="service_b">${serviceOptions}</select>
-          <input type="text" class="step-input" data-field="inputs_b" value="${step.inputs_b || '(1)'}" style="width:50px;">
-        `;
-      }
-      // TYPE 5: Compound
-      else if (step.type === "Type5") {
-        bodyHtml = `
-          <span>Rule: [${step.condition1?.service || 'Read_Light_Level'} ${step.condition1?.operator || '<'} ${step.condition1?.threshold ?? 20}]</span>
-          <strong>${step.logic_op || 'AND'}</strong>
-          <span>[${step.condition2?.service || 'Read_Temperature'} ${step.condition2?.operator || '>'} ${step.condition2?.threshold ?? 30}]</span>
-          <span>&rarr; Action:</span>
-          <select class="step-input" data-field="action_service">${serviceOptions}</select>
+          <select data-key="service_b">${options}</select>
+          <input type="text" data-key="inputs_b" value="${step.inputs_b || '(1)'}" style="width:45px;">
         `;
       }
 
       card.innerHTML = `
-        <div class="step-header">
-          <div class="step-title">
-            <span class="step-badge">${step.type}</span>
-            <span>Step #${step.step_index}: ${step.description || ''}</span>
+        <div class="step-top">
+          <div>
+            <span class="step-tag">${step.type}</span>
+            <strong style="font-size:0.85rem; margin-left:6px;">Step #${step.step_index}</strong>
           </div>
-          <button class="btn-remove-step" title="Remove Step">✕</button>
+          <button class="btn-del-step" title="Remove Step">✕</button>
         </div>
-        <div class="step-body">
-          ${bodyHtml}
+        <div class="step-controls">
+          ${inner}
         </div>
       `;
 
-      // Set select values
-      card.querySelectorAll("select").forEach(sel => {
-        const field = sel.dataset.field;
-        if (field && step[field]) sel.value = step[field];
-        sel.addEventListener("change", (e) => {
-          step[field] = e.target.value;
+      // Set input bindings
+      card.querySelectorAll("select, input").forEach(el => {
+        const key = el.dataset.key;
+        if (key && step[key] !== undefined) el.value = step[key];
+        el.addEventListener("change", (e) => {
+          step[key] = e.target.value;
           this.syncToJson();
         });
       });
 
-      // Set input values
-      card.querySelectorAll("input").forEach(inp => {
-        const field = inp.dataset.field;
-        if (field && step[field] !== undefined) inp.value = step[field];
-        inp.addEventListener("input", (e) => {
-          step[field] = e.target.value;
-          this.syncToJson();
-        });
-      });
-
-      // Delete step
-      card.querySelector(".btn-remove-step").addEventListener("click", () => {
+      card.querySelector(".btn-del-step")?.addEventListener("click", () => {
         this.removeStep(idx);
       });
 
@@ -345,4 +248,3 @@ class IoTAppEditor {
     });
   }
 }
-
