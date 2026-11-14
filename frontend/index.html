@@ -9,7 +9,7 @@
 </head>
 <body>
 
-  <!-- HEADER & SPACE META INFORMATION (Requirement 2) -->
+  <!-- HEADER: BRAND & HARDWARE CONNECTION -->
   <header class="main-header">
     <div class="brand">
       <img src="assets/app_icon.svg" alt="Logo" class="brand-logo">
@@ -19,179 +19,226 @@
       </div>
     </div>
 
-    <!-- Space Meta Information -->
+    <!-- Space Meta Info -->
     <div class="space-meta">
       <div class="meta-box">
         <span class="meta-label">SPACE ID:</span>
         <span id="metaSpaceId" class="meta-val">MySmartSpace</span>
       </div>
       <div class="meta-box">
-        <span class="meta-label">IDE LAUNCH ADDRESS:</span>
+        <span class="meta-label">IDE LAUNCH ADDR:</span>
         <span id="metaNetworkAddr" class="meta-val highlight">Detecting...</span>
       </div>
       <div class="meta-box">
         <span class="meta-label">STATUS:</span>
-        <span id="metaDiscovery" class="meta-status online">● Listening to Tweets</span>
+        <span id="metaDiscovery" class="meta-status online">● Discovery Active</span>
       </div>
     </div>
   </header>
 
-  <!-- THE 4 REQUIRED TABS (Requirement 2) -->
-  <nav class="nav-tabs">
-    <button class="nav-tab active" data-tab="tab-things">
-      <span class="icon">📟</span> Things (<span id="countThings">0</span>)
-    </button>
-    <button class="nav-tab" data-tab="tab-services">
-      <span class="icon">⚡</span> Services (<span id="countServices">0</span>)
-    </button>
-    <button class="nav-tab" data-tab="tab-relationships">
-      <span class="icon">🕸</span> Relationships (<span id="countRelationships">0</span>)
-    </button>
-    <button class="nav-tab" data-tab="tab-apps">
-      <span class="icon">🧩</span> Apps & Editor (<span id="countApps">0</span>)
-    </button>
-  </nav>
+  <!-- HARDWARE CONNECTION BAR (Real Raspberry Pi Breadboard vs Simulator) -->
+  <div class="hardware-bar">
+    <div class="hw-group">
+      <span class="hw-label">Hardware Mode:</span>
+      <select id="selTargetMode" class="hw-select">
+        <option value="real">🟢 Real Raspberry Pi (Physical Breadboard)</option>
+        <option value="sim">🟡 Mock Simulator (Offline / Testing)</option>
+      </select>
+    </div>
+    <div id="hwRealControls" class="hw-group">
+      <span class="hw-label">RPi IP:</span>
+      <input type="text" id="inputRpiIp" class="hw-input" placeholder="e.g. 192.168.1.150" value="127.0.0.1">
+      <span class="hw-label">Port:</span>
+      <select id="selRpiPort" class="hw-select">
+        <option value="6668">6668 (Atlas Middleware)</option>
+        <option value="8080">8080 (Lab 4 Part 1 HTTP)</option>
+      </select>
+      <button id="btnConnectHw" class="btn btn-primary btn-sm">Set Target</button>
+      <button id="btnTestHw" class="btn btn-secondary btn-sm" title="Test direct connection to Raspberry Pi">⚡ Test Breadboard</button>
+    </div>
+    <div id="hwStatusFeedback" class="hw-feedback"></div>
+  </div>
 
-  <!-- TAB CONTENT PANELS -->
-  <main class="main-content">
+  <!-- MAIN UNIFIED DASHBOARD -->
+  <main class="dashboard-container">
 
-    <!-- 1. THINGS TAB -->
-    <section id="tab-things" class="tab-panel active">
-      <div class="panel-header">
-        <div>
-          <h2>Connected Atlas Things</h2>
-          <p>Discovered Raspberry Pi nodes advertising their identity and hosted sensors/actuators.</p>
-        </div>
+    <!-- ============================================================== -->
+    <!-- SECTION ABOVE: SMART SPACE FUNCTIONALITY & HARDWARE CONTROLS  -->
+    <!-- ============================================================== -->
+    <section class="section-above">
+      <div class="section-title-bar">
+        <h2>Smart Space Functionalities & Hardware Controls</h2>
+        <span class="section-badge">Discovered Space Elements</span>
       </div>
-      <div id="thingsGrid" class="cards-grid">
-        <!-- Rendered dynamically -->
+
+      <div class="functionality-grid">
+
+        <!-- 1. Connected Thing Card -->
+        <div class="func-card">
+          <div class="func-card-header">
+            <span class="card-icon">📟</span>
+            <h3>Connected Thing</h3>
+          </div>
+          <div id="thingInfoBox" class="thing-info-content">
+            <div class="thing-title-row">
+              <img src="assets/rpi4.svg" alt="RPi" class="mini-avatar">
+              <div>
+                <strong id="thingNameDisplay">SmartSpacePi</strong>
+                <div class="thing-atid" id="thingAtidDisplay">ATID: MySmartThing01</div>
+              </div>
+            </div>
+            <table class="compact-meta-table">
+              <tr><td>Target Endpoint:</td><td id="thingEndpointDisplay">127.0.0.1:6668</td></tr>
+              <tr><td>OS / Model:</td><td>Raspbian / Raspberry Pi 4B</td></tr>
+              <tr><td>Entities:</td><td>LDR Light, Temp Dial, Red LED, Green LED</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2. Microservices & Interactive Breadboard Actuation -->
+        <div class="func-card func-card-wide">
+          <div class="func-card-header">
+            <span class="card-icon">⚡</span>
+            <h3>Offered Microservices (Live Breadboard Actions)</h3>
+            <span class="card-sub-badge">Sensors & Actuators</span>
+          </div>
+          <div id="servicesActionList" class="services-action-grid">
+            <!-- Microservices rendered dynamically with live test buttons -->
+          </div>
+        </div>
+
+        <!-- 3. Discovered Relationships Topology -->
+        <div class="func-card">
+          <div class="func-card-header">
+            <span class="card-icon">🕸</span>
+            <h3>Space Relationships</h3>
+            <span class="card-sub-badge">Order & Condition Rules</span>
+          </div>
+          <div id="relationshipsSummaryList" class="relationships-summary-box">
+            <!-- Relationships rendered dynamically -->
+          </div>
+        </div>
+
       </div>
     </section>
 
-    <!-- 2. SERVICES TAB (Alphabetical, Sensors vs Actuators) -->
-    <section id="tab-services" class="tab-panel">
-      <div class="panel-header">
-        <div>
-          <h2>Offered Microservices</h2>
-          <p>Alphabetical listing of all services offered by connected Things.</p>
-        </div>
-        <div class="filter-buttons">
-          <button class="filter-btn active" data-filter="all">All (<span id="numAllServices">0</span>)</button>
-          <button class="filter-btn" data-filter="sensor">Sensor-type (<span id="numSensors">0</span>)</button>
-          <button class="filter-btn" data-filter="actuator">Actuator-type (<span id="numActuators">0</span>)</button>
-        </div>
+    <!-- ============================================================== -->
+    <!-- SECTION UNDER: IOT APPLICATION IDE & RELATIVE CONSOLE          -->
+    <!-- ============================================================== -->
+    <section class="section-under">
+      <div class="section-title-bar">
+        <h2>IoT Application IDE & Execution Console</h2>
+        <span class="section-badge">Compose, Save (.iot) & Run Workflows</span>
       </div>
-      <div id="servicesList" class="services-list">
-        <!-- Rendered dynamically -->
-      </div>
-    </section>
 
-    <!-- 3. RELATIONSHIPS TAB (Graphical Display of Order & Condition links) -->
-    <section id="tab-relationships" class="tab-panel">
-      <div class="panel-header">
-        <div>
-          <h2>Discovered Relationships (Topological Graph)</h2>
-          <p>Visual relationships: <strong>Order-based</strong> (Service B runs after A completes) and <strong>Condition-based</strong> (Service B runs conditionally on return value of A).</p>
-        </div>
-        <div class="legend">
-          <span><span class="dot blue"></span> Order-based</span>
-          <span><span class="dot gold"></span> Condition-based</span>
-        </div>
-      </div>
-      <div class="relationships-layout">
-        <div class="graph-box">
-          <svg id="relationshipSvg" width="100%" height="100%"></svg>
-        </div>
-        <div class="relationships-cards-list" id="relationshipsCardsList">
-          <!-- Rendered dynamically -->
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. APPS TAB & IOT APPLICATION EDITOR (Requirements 3 & 4) -->
-    <section id="tab-apps" class="tab-panel">
-      <div class="apps-layout">
+      <div class="ide-main-layout">
         
-        <!-- Left: App Manager & Saved Apps -->
-        <aside class="apps-sidebar">
-          <div class="sidebar-header">
-            <h3>Saved Applications</h3>
-            <div class="sidebar-btn-group">
-              <button id="btnNewApp" class="btn btn-primary btn-sm">+ New App</button>
-              <button id="btnUploadAppFile" class="btn btn-secondary btn-sm">↥ Upload</button>
-              <input type="file" id="fileAppUpload" accept=".iot,.json" style="display:none;">
+        <!-- Left: App Manager & Construct Buttons -->
+        <aside class="ide-sidebar">
+          
+          <!-- Saved Apps -->
+          <div class="sidebar-block">
+            <div class="block-header">
+              <h4>Saved Applications</h4>
+              <div class="block-btn-group">
+                <button id="btnNewApp" class="btn btn-primary btn-xs">+ New</button>
+                <button id="btnUploadAppFile" class="btn btn-secondary btn-xs">↥ Upload</button>
+                <input type="file" id="fileAppUpload" accept=".iot,.json" style="display:none;">
+              </div>
+            </div>
+            <div class="working-dir-indicator">
+              <span>Folder: <code id="labelWorkingDir">apps_storage</code></span>
+            </div>
+            <div id="savedAppsList" class="saved-apps-compact-list">
+              <!-- Loaded .iot apps -->
             </div>
           </div>
-          <div class="working-dir-bar">
-            <span>Dir: <code id="labelWorkingDir">apps_storage</code></span>
+
+          <!-- Constructs Palette -->
+          <div class="sidebar-block">
+            <h4>Add Execution Step</h4>
+            <div class="construct-btns-vertical">
+              <button class="btn-construct" data-type="Type1">
+                <strong>+ Type 1: Sequential Step</strong>
+                <span>Direct service invocation</span>
+              </button>
+              <button class="btn-construct" data-type="Type2">
+                <strong>+ Type 2: Order-based Step</strong>
+                <span>If A succeeds &rarr; Run B</span>
+              </button>
+              <button class="btn-construct" data-type="Type3">
+                <strong>+ Type 3: Condition-based Step</strong>
+                <span>If A returns value &rarr; Run B</span>
+              </button>
+            </div>
           </div>
-          <div id="savedAppsList" class="saved-apps-list">
-            <!-- Saved .iot apps listed here -->
-          </div>
+
         </aside>
 
-        <!-- Right: The Editor (Requirement 3) -->
-        <div class="apps-editor">
-          <div class="editor-header">
-            <div class="editor-title-inputs">
-              <input type="text" id="appInputName" placeholder="App Name (e.g. MySmartApp)" value="CircadianComfortGuard">
-              <input type="text" id="appInputDesc" placeholder="Description..." value="Adaptive Photothermal Microclimate & Hazard Guardian">
-              <label class="loop-checkbox" title="Repeat execution in a loop">
+        <!-- Center: Workflow Pipeline Canvas -->
+        <div class="ide-canvas-box">
+          <div class="canvas-top-bar">
+            <div class="canvas-meta-inputs">
+              <input type="text" id="appInputName" placeholder="App Name (e.g. CircadianComfortGuard)" value="CircadianComfortGuard">
+              <input type="text" id="appInputDesc" placeholder="App description..." value="Adaptive Photothermal Microclimate & Hazard Guardian">
+              <label class="loop-toggle">
                 <input type="checkbox" id="chkAppLoop" checked> Loop every
-                <input type="number" id="numLoopInterval" value="3" min="1" max="60" style="width:45px;"> s
+                <input type="number" id="numLoopInterval" value="3" min="1" max="60" style="width:40px;"> s
               </label>
             </div>
-            <div class="editor-actions">
-              <button id="btnClearEditor" class="btn btn-secondary">✕ Clear</button>
-              <button id="btnSaveApp" class="btn btn-secondary">💾 Save App</button>
-              <button id="btnFinalizeApp" class="btn btn-success">✓ Finalize App</button>
+            <div class="canvas-actions">
+              <button id="btnClearEditor" class="btn btn-secondary btn-sm" title="Clear Canvas">✕ Clear</button>
+              <button id="btnSaveApp" class="btn btn-secondary btn-sm" title="Save to .iot file">💾 Save</button>
+              <button id="btnFinalizeApp" class="btn btn-success btn-sm" title="Finalize and Register App">✓ Finalize</button>
+              <span class="mode-toggle">
+                <button id="btnModeVisual" class="btn-mode active">Visual</button>
+                <button id="btnModeJson" class="btn-mode">JSON</button>
+              </span>
             </div>
           </div>
 
-          <!-- Editor Body: Palette + Canvas Steps -->
-          <div class="editor-body">
-            <!-- Palette -->
-            <div class="editor-palette">
-              <h4>Add Step to App</h4>
-              <p class="hint">Select construct to add:</p>
-              <div class="construct-buttons">
-                <button class="btn-construct" data-type="Type1">
-                  <strong>+ Type 1: Sequential</strong>
-                  <span>Run service directly</span>
-                </button>
-                <button class="btn-construct" data-type="Type2">
-                  <strong>+ Type 2: Order-based</strong>
-                  <span>If A succeeds &rarr; Run B</span>
-                </button>
-                <button class="btn-construct" data-type="Type3">
-                  <strong>+ Type 3: Condition-based</strong>
-                  <span>If A return value op val &rarr; Run B</span>
-                </button>
-              </div>
+          <!-- Steps Container -->
+          <div id="canvasStepsList" class="steps-scroll-area">
+            <!-- Dynamic step cards -->
+          </div>
 
-              <h4 style="margin-top:20px;">Available Services</h4>
-              <p class="hint">Click to add as Type 1 step:</p>
-              <div id="paletteServicesList" class="palette-services">
-                <!-- Services buttons -->
-              </div>
-            </div>
+          <!-- JSON view container -->
+          <div id="canvasJsonContainer" class="json-scroll-area" style="display:none;">
+            <textarea id="appJsonEditor" spellcheck="false"></textarea>
+          </div>
+        </div>
 
-            <!-- Canvas Steps Flow -->
-            <div class="editor-canvas">
-              <div class="canvas-header-bar">
-                <span>Execution Steps Pipeline</span>
-                <span class="canvas-mode-toggle">
-                  <button id="btnModeVisual" class="btn-mode active">Visual</button>
-                  <button id="btnModeJson" class="btn-mode">.iot JSON</button>
-                </span>
-              </div>
-              <div id="canvasStepsList" class="steps-container">
-                <!-- Step cards rendered here -->
-              </div>
-              <div id="canvasJsonContainer" class="json-container" style="display:none;">
-                <textarea id="appJsonEditor" spellcheck="false"></textarea>
-              </div>
+        <!-- Right/Under: Relative Execution Console & Status Panel -->
+        <div class="ide-console-box">
+          <div class="console-top-bar">
+            <div class="console-title">
+              <span class="pulse-dot" id="statusPulseDot"></span>
+              <strong>Active Execution Status</strong>
+              <span class="active-count">(<span id="activeAppCount">0</span> active)</span>
             </div>
+            <button id="btnClearLogs" class="btn-link">Clear Console</button>
+          </div>
+
+          <!-- Active Apps Status Mini-Table -->
+          <div class="console-status-table-box">
+            <table class="compact-status-table">
+              <thead>
+                <tr>
+                  <th>Application</th>
+                  <th>Status</th>
+                  <th>Last Reading / Action</th>
+                  <th>Control</th>
+                </tr>
+              </thead>
+              <tbody id="statusTableBody">
+                <tr><td colspan="4" class="empty">No applications currently running.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Live Log Trace Feed -->
+          <div class="console-log-feed-box" id="traceBody">
+            <div class="log-welcome">System ready. Select or compose an app and click [▶ Run] to observe live execution.</div>
           </div>
         </div>
 
@@ -200,50 +247,6 @@
 
   </main>
 
-  <!-- FIXED BOTTOM STATUS PANEL (Requirement 4) -->
-  <footer class="bottom-status-panel">
-    <div class="status-panel-header">
-      <div class="status-title">
-        <span class="pulse-dot" id="statusPulseDot"></span>
-        <strong>APPLICATION EXECUTION STATUS PANEL</strong>
-        <span class="active-count">(<span id="activeAppCount">0</span> active)</span>
-      </div>
-      <div>
-        <button id="btnToggleTraceConsole" class="btn btn-sm btn-secondary">▲ Live Logs</button>
-      </div>
-    </div>
-
-    <!-- Active Apps Table -->
-    <div class="status-table-box">
-      <table class="status-table">
-        <thead>
-          <tr>
-            <th>App Name</th>
-            <th>Start Time</th>
-            <th>Status</th>
-            <th>Latest Value / Result</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="statusTableBody">
-          <tr><td colspan="5" class="empty">No applications currently active.</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Log Console Drawer -->
-    <div class="trace-drawer" id="traceDrawer" style="display:none;">
-      <div class="trace-header">
-        <span>Real-time Service Invocations & Trace Logs:</span>
-        <button id="btnClearLogs" class="btn-link">Clear</button>
-      </div>
-      <div class="trace-body" id="traceBody">
-        <!-- Live log entries -->
-      </div>
-    </div>
-  </footer>
-
-  <script src="relationships_graph.js"></script>
   <script src="editor_canvas.js"></script>
   <script src="app.js"></script>
 </body>

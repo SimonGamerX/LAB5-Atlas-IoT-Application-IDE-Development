@@ -274,6 +274,13 @@ class SmartSpaceRegistry:
 
         return None
 
+    def update_target_hardware(self, target_ip: str, target_port: int):
+        """Points all registered Things to the physical Raspberry Pi IP and port."""
+        with self._lock:
+            for t in self.things.values():
+                t.ip = target_ip
+                t.port = int(target_port)
+
     def get_space_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             # Sort services alphabetically by thing, then name

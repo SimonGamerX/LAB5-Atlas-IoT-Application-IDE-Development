@@ -34,13 +34,11 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
   5. `Relationship`: Name, Type (`Order-based`, `Condition-based`), First Service (`FS name`), Second Service (`SS name`), Description.
 - **Startup "Freeze" Splash**: As suggested by the professor, the UI displays an animated scanning screen that blocks premature interactions until space metadata is learned (or user dismisses).
 
-### Requirement 2: Display Space Meta Information & Multi-Tab Interface
+### Requirement 2: Display Space Meta Information & Unified Interface
+- **Unified Single-View Dashboard**: Replaced fragmented tab switching with a cohesive, single-screen layout:
+  - **Above**: Smart Space Functionalities & Hardware Controls (Hardware target bar, Connected Thing card, Offered Microservices with direct breadboard action buttons, and Discovered Relationships).
+  - **Under**: The IoT Application IDE (Saved Apps sidebar, Visual Pipeline Canvas for Type 1, 2, 3 steps) and the relative Real-time Execution Console & Status Panel.
 - **Network Metadata**: Prominently shows the primary network address where the IDE is launched (`http://<IP>:<PORT>`).
-- **Things Tab**: Visual cards with hardware skins, ATID, IP:Port, OS, hardware vendor, and hosted entities.
-- **Services Tab**: Alphabetical catalog grouped by Thing, filterable by **Sensors / Reports** vs. **Actuators / Actions**, with an interactive *Invoke Test* modal to call microservices over TCP 6668 directly.
-- **Relationships Tab**: Interactive SVG topological graph (`frontend/relationships_graph.js`) visualizing:
-  - **Order-based relationships**: Solid blue directed arcs ($A \rightarrow B$).
-  - **Condition-based relationships**: Dashed amber directed arcs with condition operator chips.
 
 ### Requirement 3: IoT Application Editor
 - **Hybrid Interface**: Visual Drag & Drop Canvas (`frontend/editor_canvas.js`) synced bi-directionally with a code/JSON editor.
@@ -130,13 +128,24 @@ c:\Users\Withe\OneDrive\Desktop\LAB5\
 
 ## 5. Execution Commands Reference
 
-### Launch the IDE
+### Launch with Physical Raspberry Pi (Breadboard)
+```powershell
+cd c:\Users\Withe\OneDrive\Desktop\LAB5
+python run_ide.py <RPi_IP>
+```
+*(Example: `python run_ide.py 192.168.1.100`)*
+
+### Launch with Simulator (Offline / Testing)
 ```powershell
 cd c:\Users\Withe\OneDrive\Desktop\LAB5
 python run_ide.py
 ```
 - Access locally: `http://localhost:5050`
 - Access on LAN: `http://<YOUR_LOCAL_IP>:5050`
+
+### Direct Breadboard Verification
+1. Click **⚡ Test Breadboard** in the top bar to verify network connection and round-trip latency.
+2. Go to the **Services** tab and click **🔴 Turn Red LED ON** or **🟢 Turn Green LED ON** to test hardware actuation directly.
 
 ### Package Final Submission ZIP
 ```powershell

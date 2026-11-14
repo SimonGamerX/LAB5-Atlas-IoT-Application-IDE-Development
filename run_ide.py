@@ -43,6 +43,17 @@ def main():
     print("   Professor: Sumi Helal | Academic Year 2026-2027")
     print("=" * 65)
 
+    # Parse optional RPi IP from command line (e.g. python run_ide.py 192.168.1.150 6668)
+    target_rpi_ip = "127.0.0.1"
+    target_rpi_port = 6668
+    simulator_enabled = True
+
+    if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
+        target_rpi_ip = sys.argv[1].strip()
+        target_rpi_port = int(sys.argv[2]) if len(sys.argv) > 2 else 6668
+        simulator_enabled = False
+        print(f"[!] REAL HARDWARE MODE ENABLED: Targeting Raspberry Pi at {target_rpi_ip}:{target_rpi_port}")
+
     # 1. Initialize Smart Space Registry
     registry = SmartSpaceRegistry(space_id="MySmartSpace")
 
@@ -50,10 +61,12 @@ def main():
     listener = TweetListener(registry)
     listener.start()
 
-    # 3. Start Mock Atlas Hardware Server (TCP 6668) & Pre-seed Lab 4 Space
+    # 3. Setup Hardware Target & Simulator
     mock_server = MockAtlasThingServer(port=6668, host="127.0.0.1")
-    mock_server.start()
-    inject_mock_space(registry, rpi_ip="127.0.0.1", port=6668)
+    if simulator_enabled:
+        mock_server.start()
+        print(f"[i] Mock Simulator listening on 127.0.0.1:6668 (can switch to real RPi in dashboard)")
+    inject_mock_space(registry, rpi_ip=target_rpi_ip, port=target_rpi_port)
 
     # 4. Initialize App Manager
     app_manager = AppManager(working_dir=APPS_DIR, registry=registry)
@@ -67,7 +80,9 @@ def main():
     AtlasRequestHandler.frontend_dir = FRONTEND_DIR
     AtlasRequestHandler.network_ip = local_ip
     AtlasRequestHandler.server_port = PORT
-    AtlasRequestHandler.simulator_enabled = True
+    AtlasRequestHandler.simulator_enabled = simulator_enabled
+    AtlasRequestHandler.target_ip = target_rpi_ip
+    AtlasRequestHandler.target_port = target_rpi_port
 
     # 6. Bind HTTP Server
     server_address = ("0.0.0.0", PORT)

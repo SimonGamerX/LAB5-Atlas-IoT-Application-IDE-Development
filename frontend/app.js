@@ -1,52 +1,112 @@
 /**
- * Atlas IoT Application IDE - Frontend Controller
+ * Atlas IoT Application IDE - Unified Dashboard Controller
  * Course: B8019 Programming the Internet of Things
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   let spaceData = null;
-  let relationshipsGraph = null;
-  let appEditor = null;
-  let currentFilter = "all";
+  let appEditor = new IoTAppEditor();
 
-  relationshipsGraph = new RelationshipsGraph("relationshipSvg", "relationshipsCardsList");
-  appEditor = new IoTAppEditor();
+  // Hardware Target Controls
+  const selTargetMode = document.getElementById("selTargetMode");
+  const inputRpiIp = document.getElementById("inputRpiIp");
+  const selRpiPort = document.getElementById("selRpiPort");
+  const btnConnectHw = document.getElementById("btnConnectHw");
+  const btnTestHw = document.getElementById("btnTestHw");
+  const hwStatusFeedback = document.getElementById("hwStatusFeedback");
 
-  // Tab switching
-  document.querySelectorAll(".nav-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      tab.classList.add("active");
-      const target = document.getElementById(tab.dataset.tab);
-      if (target) target.classList.add("active");
+  function updateTargetModeUI() {
+    const isSim = selTargetMode.value === "sim";
+    inputRpiIp.disabled = isSim;
+    selRpiPort.disabled = isSim;
+    btnTestHw.disabled = isSim;
+    if (isSim) {
+      hwStatusFeedback.textContent = "Simulator Mode Active (Local Mock)";
+      hwStatusFeedback.className = "hw-feedback ok";
+    } else {
+      hwStatusFeedback.textContent = `Target: ${inputRpiIp.value}:${selRpiPort.value}`;
+      hwStatusFeedback.className = "hw-feedback";
+    }
+  }
 
-      if (tab.dataset.tab === "tab-relationships") {
-        setTimeout(() => relationshipsGraph.render(), 50);
+  selTargetMode?.addEventListener("change", async () => {
+    updateTargetModeUI();
+    const isSim = selTargetMode.value === "sim";
+    await fetch("/api/target/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ip: inputRpiIp.value.trim() || "127.0.0.1",
+        port: parseInt(selRpiPort.value) || 6668,
+        simulator: isSim
+      })
+    });
+    fetchSpace();
+  });
+
+  btnConnectHw?.addEventListener("click", async () => {
+    const ip = inputRpiIp.value.trim();
+    const port = parseInt(selRpiPort.value) || 6668;
+    if (!ip) {
+      alert("Please enter the Raspberry Pi IP address.");
+      return;
+    }
+    hwStatusFeedback.textContent = `Connecting to ${ip}:${port}...`;
+    hwStatusFeedback.className = "hw-feedback";
+
+    const res = await fetch("/api/target/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip, port, simulator: false })
+    });
+    const d = await res.json();
+    if (d.success) {
+      hwStatusFeedback.textContent = `Target connected: ${ip}:${port}!`;
+      hwStatusFeedback.className = "hw-feedback ok";
+      fetchSpace();
+    }
+  });
+
+  btnTestHw?.addEventListener("click", async () => {
+    const ip = inputRpiIp.value.trim();
+    const port = parseInt(selRpiPort.value) || 6668;
+    hwStatusFeedback.textContent = `Testing ${ip}:${port}...`;
+    hwStatusFeedback.className = "hw-feedback";
+
+    try {
+      const res = await fetch("/api/target/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip, port })
+      });
+      const d = await res.json();
+      if (d.success) {
+        let msg = `✅ Breadboard Connected! (${d.latency_ms}ms)`;
+        if (d.suggested_port) {
+          msg += ` [Port ${d.suggested_port}]`;
+          selRpiPort.value = String(d.suggested_port);
+        }
+        hwStatusFeedback.textContent = msg;
+        hwStatusFeedback.className = "hw-feedback ok";
+        alert(`Success! Breadboard responded.\nLatency: ${d.latency_ms}ms\nResponse: ${JSON.stringify(d.Return)}`);
+      } else {
+        hwStatusFeedback.textContent = `❌ Failed: ${d.error}`;
+        hwStatusFeedback.className = "hw-feedback err";
+        alert(`Connection to ${ip}:${port} failed.\n\nCheck:\n1. Pi is on same network.\n2. ./Atlas (port 6668) or ./rpi_service_server (port 8080) is running.\n\nError: ${d.error}`);
       }
-    });
+    } catch (e) {
+      hwStatusFeedback.textContent = `❌ Network Error: ${e}`;
+      hwStatusFeedback.className = "hw-feedback err";
+    }
   });
 
-  // Services filter buttons
-  document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentFilter = btn.dataset.filter;
-      renderServices();
-    });
-  });
-
-  // App Editor Actions
-  document.getElementById("btnNewApp")?.addEventListener("click", () => {
-    appEditor.clear();
-  });
-
+  // Editor Actions
+  document.getElementById("btnNewApp")?.addEventListener("click", () => appEditor.clear());
   document.getElementById("btnClearEditor")?.addEventListener("click", () => {
     if (confirm("Clear editor canvas?")) appEditor.clear();
   });
 
-  // Save App (Requirement 4)
+  // Save App
   document.getElementById("btnSaveApp")?.addEventListener("click", async () => {
     const appDef = appEditor.getAppDefinition();
     const resp = await fetch("/api/apps/save", {
@@ -61,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Finalize App (Requirement 3)
+  // Finalize App
   document.getElementById("btnFinalizeApp")?.addEventListener("click", async () => {
     const appDef = appEditor.getAppDefinition();
     if (!appDef.name) {
@@ -69,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (!appDef.steps || appDef.steps.length === 0) {
-      alert("Cannot finalize an empty app. Add at least one step.");
+      alert("Cannot finalize an empty application. Add at least one step.");
       return;
     }
     const resp = await fetch("/api/apps/save", {
@@ -79,12 +139,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const res = await resp.json();
     if (res.success) {
-      alert(`✓ Application '${appDef.name}' finalized and added to Apps tab!`);
+      alert(`✓ Application '${appDef.name}' finalized and saved as .iot file!`);
       loadSavedApps();
     }
   });
 
-  // Upload App File
+  // Upload App
   const fileInput = document.getElementById("fileAppUpload");
   document.getElementById("btnUploadAppFile")?.addEventListener("click", () => fileInput?.click());
   fileInput?.addEventListener("change", (e) => {
@@ -103,20 +163,13 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.readAsText(file);
   });
 
-  // Live Logs Console Toggle
-  const traceDrawer = document.getElementById("traceDrawer");
-  const btnToggleLogs = document.getElementById("btnToggleTraceConsole");
-  btnToggleLogs?.addEventListener("click", () => {
-    const isHidden = traceDrawer.style.display === "none";
-    traceDrawer.style.display = isHidden ? "flex" : "none";
-    btnToggleLogs.textContent = isHidden ? "▼ Close Logs" : "▲ Live Logs";
-  });
+  // Clear Logs
   document.getElementById("btnClearLogs")?.addEventListener("click", () => {
-    document.getElementById("traceBody").innerHTML = "";
+    document.getElementById("traceBody").innerHTML = '<div class="log-welcome">Console cleared.</div>';
   });
 
   // -------------------------------------------------------------
-  // Data Fetching & Rendering
+  // Data Fetching & Rendering (Section Above)
   // -------------------------------------------------------------
   async function fetchSpace() {
     try {
@@ -126,106 +179,138 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("metaSpaceId").textContent = spaceData.space_id;
       if (spaceData.meta) {
         document.getElementById("metaNetworkAddr").textContent = spaceData.meta.ide_network_address;
+        if (spaceData.meta.target_ip && spaceData.meta.target_ip !== "127.0.0.1") {
+          inputRpiIp.value = spaceData.meta.target_ip;
+          selRpiPort.value = String(spaceData.meta.target_port || 6668);
+          selTargetMode.value = "real";
+          updateTargetModeUI();
+        }
       }
-      document.getElementById("countThings").textContent = spaceData.counts.things;
-      document.getElementById("countServices").textContent = spaceData.counts.services;
-      document.getElementById("countRelationships").textContent = spaceData.counts.relationships;
 
-      renderThings();
-      renderServices();
-      relationshipsGraph.setData(spaceData.services, spaceData.relationships);
+      renderThingCard();
+      renderServicesList();
+      renderRelationshipsSummary();
       appEditor.setServices(spaceData.services);
     } catch (e) {
-      console.warn("Could not connect to Atlas IDE server:", e);
+      console.warn("Could not fetch space data:", e);
     }
   }
 
-  function renderThings() {
-    const grid = document.getElementById("thingsGrid");
-    if (!grid || !spaceData) return;
-    grid.innerHTML = "";
+  function renderThingCard() {
+    if (!spaceData || !spaceData.things || spaceData.things.length === 0) return;
+    const t = spaceData.things[0];
+    document.getElementById("thingNameDisplay").textContent = t.name;
+    document.getElementById("thingAtidDisplay").textContent = `ATID: ${t.thing_id}`;
+    document.getElementById("thingEndpointDisplay").textContent = `${t.ip}:${t.port}`;
+  }
 
-    spaceData.things.forEach(thing => {
+  function renderServicesList() {
+    const container = document.getElementById("servicesActionList");
+    if (!container || !spaceData) return;
+    container.innerHTML = "";
+
+    spaceData.services.forEach(s => {
       const card = document.createElement("div");
-      card.className = "thing-card";
+      card.className = "srv-action-card";
 
-      const entities = spaceData.entities.filter(e => e.thing_id === thing.thing_id);
-      const tags = entities.map(e => `<span class="entity-tag">${e.name} (${e.entity_type})</span>`).join("");
+      let buttonsHtml = "";
+      if (s.name.includes("Light")) {
+        buttonsHtml = `
+          <div class="srv-btns-row">
+            <button class="btn btn-primary btn-sm" onclick="callHwService('${s.name}', '()', 'disp_Light')">👁 Read LDR</button>
+            <span id="disp_Light" class="srv-val-box">—</span>
+          </div>`;
+      } else if (s.name.includes("Temp")) {
+        buttonsHtml = `
+          <div class="srv-btns-row">
+            <button class="btn btn-primary btn-sm" onclick="callHwService('${s.name}', '()', 'disp_Temp')">🌡 Read Temp</button>
+            <span id="disp_Temp" class="srv-val-box">—</span>
+          </div>`;
+      } else if (s.name.includes("Alarm")) {
+        buttonsHtml = `
+          <div class="srv-btns-row">
+            <button class="btn btn-danger btn-sm" onclick="callHwService('${s.name}', '(1)')">🔴 Turn ON</button>
+            <button class="btn btn-secondary btn-sm" onclick="callHwService('${s.name}', '(0)')">⚪ Turn OFF</button>
+          </div>`;
+      } else if (s.name.includes("Cooling")) {
+        buttonsHtml = `
+          <div class="srv-btns-row">
+            <button class="btn btn-success btn-sm" onclick="callHwService('${s.name}', '(1)')">🟢 Turn ON</button>
+            <button class="btn btn-secondary btn-sm" onclick="callHwService('${s.name}', '(0)')">⚪ Turn OFF</button>
+          </div>`;
+      } else {
+        buttonsHtml = `
+          <div class="srv-btns-row">
+            <button class="btn btn-secondary btn-sm" onclick="callHwService('${s.name}', '${s.is_sensor ? '()' : '(1)'}')">⚡ Test</button>
+          </div>`;
+      }
 
       card.innerHTML = `
-        <div class="thing-card-header">
-          <img src="assets/rpi4.svg" alt="RPi" class="thing-avatar">
-          <div class="thing-title">
-            <h3>${thing.name}</h3>
-            <div class="thing-id-tag">ATID: ${thing.thing_id}</div>
-          </div>
+        <div class="srv-top-row">
+          <span class="srv-name">${s.name}</span>
+          <span class="srv-tag ${s.is_sensor ? 'sensor' : 'actuator'}">${s.is_sensor ? 'Sensor' : 'Actuator'}</span>
         </div>
-        <table class="thing-meta-table">
-          <tr><td>Address:</td><td>${thing.ip}:${thing.port}</td></tr>
-          <tr><td>OS:</td><td>${thing.os || 'Raspbian'}</td></tr>
-          <tr><td>Model:</td><td>${thing.model || 'Raspberry Pi 4B'}</td></tr>
-          <tr><td>Owner / Vendor:</td><td>${thing.owner || 'iotpj'} / ${thing.vendor || 'RaspberryPiCo'}</td></tr>
-        </table>
-        <div>
-          <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">Hosted Entities:</div>
-          <div class="entities-tags">${tags || 'None'}</div>
-        </div>
+        ${buttonsHtml}
       `;
-      grid.appendChild(card);
+      container.appendChild(card);
     });
   }
 
-  function renderServices() {
-    const list = document.getElementById("servicesList");
-    if (!list || !spaceData) return;
-    list.innerHTML = "";
+  function renderRelationshipsSummary() {
+    const container = document.getElementById("relationshipsSummaryList");
+    if (!container || !spaceData) return;
+    container.innerHTML = "";
 
-    const allSrv = spaceData.services;
-    const sensors = allSrv.filter(s => s.is_sensor);
-    const actuators = allSrv.filter(s => s.is_actuator);
+    if (spaceData.relationships.length === 0) {
+      container.innerHTML = "<p style='color:#64748b; font-size:0.75rem;'>No relationships declared yet.</p>";
+      return;
+    }
 
-    document.getElementById("numAllServices").textContent = allSrv.length;
-    document.getElementById("numSensors").textContent = sensors.length;
-    document.getElementById("numActuators").textContent = actuators.length;
-
-    const filtered = allSrv.filter(s => {
-      if (currentFilter === "sensor") return s.is_sensor;
-      if (currentFilter === "actuator") return s.is_actuator;
-      return true;
-    });
-
-    filtered.forEach(s => {
+    spaceData.relationships.forEach(rel => {
+      const isOrder = rel.relation_type.toLowerCase().includes("order");
       const item = document.createElement("div");
-      item.className = "service-item";
-
-      let icon = "assets/app_icon.svg";
-      if (s.name.includes("Light")) icon = "assets/sensor_light.svg";
-      else if (s.name.includes("Temp")) icon = "assets/sensor_temp.svg";
-      else if (s.name.includes("Alarm")) icon = "assets/actuator_alarm.svg";
-      else if (s.name.includes("Cooling")) icon = "assets/actuator_fan.svg";
-
+      item.className = `rel-summary-item ${isOrder ? 'order' : 'condition'}`;
       item.innerHTML = `
-        <img src="${icon}" alt="Icon" class="service-icon">
-        <div class="service-details">
-          <h4>
-            ${s.name}
-            <span class="badge-tag ${s.is_sensor ? 'sensor' : 'actuator'}">
-              ${s.is_sensor ? 'Sensor' : 'Actuator'}
-            </span>
-          </h4>
-          <div class="service-sig">${s.api || s.name + '()'}</div>
-          <div class="service-desc">${s.description || ''} &bull; Thing: <strong>${s.thing_id}</strong></div>
+        <div class="rel-summary-name">
+          <span>${rel.name}</span>
+          <span style="color:${isOrder ? '#60a5fa' : '#f59e0b'}; font-size:0.68rem; font-weight:bold;">${rel.relation_type}</span>
         </div>
+        <div class="rel-summary-arrow">${rel.fs_name} &rarr; ${rel.ss_name}</div>
       `;
-      list.appendChild(item);
+      container.appendChild(item);
     });
   }
 
+  window.callHwService = async (serviceName, inputs = "()", displayId = null) => {
+    try {
+      const resp = await fetch("/api/service/call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service_name: serviceName, inputs })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        if (displayId) {
+          const el = document.getElementById(displayId);
+          if (el) el.textContent = `${res.Return} (${res.latency_ms}ms)`;
+        } else {
+          alert(`✓ '${serviceName}' executed on hardware!\nResult: ${JSON.stringify(res.Return)}\nLatency: ${res.latency_ms}ms`);
+        }
+      } else {
+        alert(`❌ Error executing '${serviceName}' on breadboard:\n${res.error}\n\nCheck Raspberry Pi IP and connection.`);
+      }
+    } catch (e) {
+      alert(`Network error: ${e}`);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Data Fetching & Rendering (Section Under: IDE & Console)
+  // -------------------------------------------------------------
   async function loadSavedApps() {
     try {
       const r = await fetch("/api/apps");
       const data = await r.json();
-      document.getElementById("countApps").textContent = data.apps.length;
       document.getElementById("labelWorkingDir").textContent = data.working_dir;
 
       const container = document.getElementById("savedAppsList");
@@ -234,27 +319,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
       data.apps.forEach(app => {
         const card = document.createElement("div");
-        card.className = "saved-app-card";
+        card.className = "app-compact-card";
         card.innerHTML = `
-          <h4>
+          <div class="app-compact-title">
             <span>${app.name}</span>
-            <span class="saved-app-file">${app.filename}</span>
-          </h4>
-          <div class="saved-app-desc">${app.description || 'Atlas App'} (${(app.steps || []).length} steps)</div>
-          <div class="saved-app-btns">
-            <button class="btn btn-primary btn-sm btn-run">▶ Run</button>
-            <button class="btn btn-secondary btn-sm btn-stop">■ Stop</button>
-            <button class="btn btn-danger btn-sm btn-del">✕</button>
+            <span class="app-compact-file">${app.filename}</span>
+          </div>
+          <div class="app-compact-btns">
+            <button class="btn btn-primary btn-xs btn-run">▶ Run</button>
+            <button class="btn btn-secondary btn-xs btn-stop">■ Stop</button>
+            <button class="btn btn-danger btn-xs btn-del">✕</button>
           </div>
         `;
 
-        // Double click to load into editor (Requirement 4)
         card.addEventListener("dblclick", () => {
           appEditor.loadApp(app);
-          alert(`Application '${app.name}' uploaded into Editor.`);
+          alert(`Application '${app.name}' loaded into Editor.`);
         });
 
-        // Run
         card.querySelector(".btn-run").addEventListener("click", async (e) => {
           e.stopPropagation();
           const res = await fetch("/api/apps/activate", {
@@ -267,7 +349,6 @@ document.addEventListener("DOMContentLoaded", () => {
           updateStatusPanel();
         });
 
-        // Stop
         card.querySelector(".btn-stop").addEventListener("click", async (e) => {
           e.stopPropagation();
           await fetch("/api/apps/stop", {
@@ -278,7 +359,6 @@ document.addEventListener("DOMContentLoaded", () => {
           updateStatusPanel();
         });
 
-        // Delete
         card.querySelector(".btn-del").addEventListener("click", async (e) => {
           e.stopPropagation();
           if (confirm(`Delete app '${app.name}'?`)) {
@@ -309,20 +389,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!tbody) return;
 
       if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty">No applications currently active.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="empty">No applications currently active.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = list.map(item => `
         <tr>
           <td><strong>${item.app_name}</strong></td>
-          <td>${item.start_time}</td>
           <td><span class="badge-status ${item.status.toLowerCase()}">${item.status}</span></td>
-          <td style="font-family:var(--code); color:#a7f3d0;">${item.last_result ? JSON.stringify(item.last_result) : '—'}</td>
+          <td style="font-family:var(--code); color:#a7f3d0; font-size:0.7rem;">${item.last_result ? JSON.stringify(item.last_result) : '—'}</td>
           <td>
             ${item.can_stop 
-              ? `<button class="btn btn-danger btn-sm" onclick="stopApp('${item.app_name}')">■ Stop</button>`
-              : `<span style="color:#64748b; font-size:0.75rem;">Done</span>`}
+              ? `<button class="btn btn-danger btn-xs" onclick="stopApp('${item.app_name}')">■ Stop</button>`
+              : `<span style="color:#64748b; font-size:0.7rem;">Done</span>`}
           </td>
         </tr>
       `).join("");
@@ -345,17 +424,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const body = document.getElementById("traceBody");
       if (!body) return;
 
-      body.innerHTML = (d.logs || []).map(l => `
-        <div class="log-row">
-          <span class="log-t">[${l.time_str}]</span>
-          <span class="log-m">${l.message}</span>
-        </div>
-      `).join("");
-      body.scrollTop = body.scrollHeight;
+      const logs = d.logs || [];
+      if (logs.length > 0) {
+        body.innerHTML = logs.map(l => {
+          let extraClass = "";
+          if (l.level === "ERROR" || l.message.includes("[ERROR]")) extraClass = "error";
+          else if (l.level === "START" || l.level === "DONE") extraClass = "success";
+          return `
+            <div class="log-row">
+              <span class="log-t">[${l.time_str}]</span>
+              <span class="log-m ${extraClass}">${l.message}</span>
+            </div>
+          `;
+        }).join("");
+        body.scrollTop = body.scrollHeight;
+      }
     } catch (e) {}
   }
 
-  // Initial calls & polling
+  // Initial calls
   fetchSpace();
   loadSavedApps();
   updateStatusPanel();
@@ -363,5 +450,5 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(() => {
     updateStatusPanel();
     updateLogs();
-  }, 1500);
+  }, 1400);
 });
