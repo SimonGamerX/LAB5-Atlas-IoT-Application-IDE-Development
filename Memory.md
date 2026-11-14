@@ -36,7 +36,7 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
 
 ### Requirement 2: Display Space Meta Information & Unified Interface
 - **Unified Single-View Dashboard**: Replaced fragmented tab switching with a cohesive, single-screen layout:
-  - **Above**: Smart Space Functionalities & Hardware Controls (Hardware target bar, Connected Thing card, Offered Microservices with direct breadboard action buttons, and Discovered Relationships).
+  - **Above**: Full-width Smart Space Functionalities & Parameters Table listing all microservices, their exact signatures, expected input parameters (e.g. `state: int (1=ON, 0=OFF)` vs `None ()`), output types, hardware entities, and direct breadboard triggers (`[🔴 ON]`, `[⚪ OFF]`, `[👁 Read Light]`, `[🌡 Read Temp]`).
   - **Under**: The IoT Application IDE (Saved Apps sidebar, Visual Pipeline Canvas for Type 1, 2, 3 steps) and the relative Real-time Execution Console & Status Panel.
 - **Network Metadata**: Prominently shows the primary network address where the IDE is launched (`http://<IP>:<PORT>`).
 

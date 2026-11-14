@@ -63,62 +63,31 @@
   <main class="dashboard-container">
 
     <!-- ============================================================== -->
-    <!-- SECTION ABOVE: SMART SPACE FUNCTIONALITY & HARDWARE CONTROLS  -->
+    <!-- SECTION ABOVE: SMART SPACE FUNCTIONALITIES & PARAMETERS         -->
     <!-- ============================================================== -->
     <section class="section-above">
       <div class="section-title-bar">
-        <h2>Smart Space Functionalities & Hardware Controls</h2>
-        <span class="section-badge">Discovered Space Elements</span>
+        <h2>Smart Space Functionalities & Microservices</h2>
+        <span class="section-badge">Signatures, Expected Parameters & Live Triggers</span>
       </div>
 
-      <div class="functionality-grid">
-
-        <!-- 1. Connected Thing Card -->
-        <div class="func-card">
-          <div class="func-card-header">
-            <span class="card-icon">📟</span>
-            <h3>Connected Thing</h3>
-          </div>
-          <div id="thingInfoBox" class="thing-info-content">
-            <div class="thing-title-row">
-              <img src="assets/rpi4.svg" alt="RPi" class="mini-avatar">
-              <div>
-                <strong id="thingNameDisplay">SmartSpacePi</strong>
-                <div class="thing-atid" id="thingAtidDisplay">ATID: MySmartThing01</div>
-              </div>
-            </div>
-            <table class="compact-meta-table">
-              <tr><td>Target Endpoint:</td><td id="thingEndpointDisplay">127.0.0.1:6668</td></tr>
-              <tr><td>OS / Model:</td><td>Raspbian / Raspberry Pi 4B</td></tr>
-              <tr><td>Entities:</td><td>LDR Light, Temp Dial, Red LED, Green LED</td></tr>
-            </table>
-          </div>
-        </div>
-
-        <!-- 2. Microservices & Interactive Breadboard Actuation -->
-        <div class="func-card func-card-wide">
-          <div class="func-card-header">
-            <span class="card-icon">⚡</span>
-            <h3>Offered Microservices (Live Breadboard Actions)</h3>
-            <span class="card-sub-badge">Sensors & Actuators</span>
-          </div>
-          <div id="servicesActionList" class="services-action-grid">
-            <!-- Microservices rendered dynamically with live test buttons -->
-          </div>
-        </div>
-
-        <!-- 3. Discovered Relationships Topology -->
-        <div class="func-card">
-          <div class="func-card-header">
-            <span class="card-icon">🕸</span>
-            <h3>Space Relationships</h3>
-            <span class="card-sub-badge">Order & Condition Rules</span>
-          </div>
-          <div id="relationshipsSummaryList" class="relationships-summary-box">
-            <!-- Relationships rendered dynamically -->
-          </div>
-        </div>
-
+      <div class="func-full-card">
+        <table class="functionalities-table">
+          <thead>
+            <tr>
+              <th>Functionality / Service</th>
+              <th>Category</th>
+              <th>Hardware Entity</th>
+              <th>Parameters (Inputs)</th>
+              <th>Output Type</th>
+              <th>Description</th>
+              <th>Live Breadboard Action</th>
+            </tr>
+          </thead>
+          <tbody id="functionalitiesTableBody">
+            <!-- Microservices with parameters rendered dynamically -->
+          </tbody>
+        </table>
       </div>
     </section>
 

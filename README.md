@@ -25,19 +25,16 @@ http://localhost:5050
 
 ## Unified Dashboard Layout (Single-View)
 
-Everything is visible and controllable on one screen without switching tabs:
+Everything is visible and controllable on one screen:
 
-### 1. ABOVE: Smart Space Functionalities & Hardware Controls
-- **Target Hardware Bar**: Enter your Raspberry Pi IP, select port (`6668` for Atlas Middleware or `8080` for Lab 4 Part 1), and click **⚡ Test Breadboard**.
-- **Connected Thing**: Shows Raspberry Pi 4B hardware info, IP:port, and hosted entities.
-- **Offered Microservices**: Direct interactive buttons to actuate your physical breadboard:
-  - **🔴 Turn Red LED ON** / **⚪ Turn OFF**
-  - **🟢 Turn Green LED ON** / **⚪ Turn OFF**
-  - **👁 Read LDR** (shows live light level percentage)
-  - **🌡 Read Temp** (shows live dial temperature in °C)
-- **Space Relationships**: Displays discovered Order-based and Condition-based rules.
+### 1. ABOVE: Smart Space Functionalities & Parameters
+Full-width table listing all hardware functionalities with their exact signatures, expected parameters, and live breadboard action buttons:
+- **`Read_Light_Level`**: Sensor (ADS1115 CH0) | Inputs: `None ()` | Output: `int (0-100%)` | `[👁 Read Light]`
+- **`Read_Temperature`**: Sensor (Rotary Encoder) | Inputs: `None ()` | Output: `int (15-45 °C)` | `[🌡 Read Temp]`
+- **`Set_Alarm_LED`**: Actuator (Red LED GPIO 16) | Inputs: `state: int (1=ON, 0=OFF)` | Output: `void` | `[🔴 ON]` `[⚪ OFF]`
+- **`Set_Cooling_Indicator`**: Actuator (Green LED GPIO 12) | Inputs: `state: int (1=ON, 0=OFF)` | Output: `void` | `[🟢 ON]` `[⚪ OFF]`
 
 ### 2. UNDER: IoT Application IDE & Relative Console
-- **Left**: Saved `.iot` applications (`CircadianComfortGuard`, `Lab4DemoApp`) and construct buttons (`+ Type 1`, `+ Type 2`, `+ Type 3`).
-- **Center**: Visual workflow canvas where steps are arranged, edited, and finalized into `.iot` files.
-- **Right**: Relative execution console showing running applications, active statuses, and real-time execution trace logs.
+- **Left Sidebar**: Saved applications (`CircadianComfortGuard`, `Lab4DemoApp`), + New App, Upload, and construct buttons (`+ Type 1`, `+ Type 2`, `+ Type 3`).
+- **Center Canvas**: Interactive visual workflow pipeline builder to arrange steps, configure thresholds, and save to `.iot`.
+- **Right Console**: Real-time monitor displaying active application status (`ACTIVE`, `STOPPED`, `COMPLETED`), start times, and live execution trace logs.

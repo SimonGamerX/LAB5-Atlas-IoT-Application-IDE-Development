@@ -142,134 +142,109 @@ body {
 }
 
 /* ============================================================== */
-/* SECTION ABOVE: SMART SPACE FUNCTIONALITIES GRID                */
+/* SECTION ABOVE: SMART SPACE FUNCTIONALITIES TABLE               */
 /* ============================================================== */
-.functionality-grid {
-  display: grid;
-  grid-template-columns: 280px 1.4fr 1fr;
-  gap: 16px;
-}
-
-.func-card {
+.func-full-card {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 
-.func-card-header {
+.functionalities-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.functionalities-table thead {
+  background: #0f1626;
+  border-bottom: 2px solid var(--border);
+}
+
+.functionalities-table th {
+  padding: 10px 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.functionalities-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.functionalities-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.func-name-col {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: #fff;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
 }
-.func-card-header h3 {
-  font-size: 0.88rem;
-  font-weight: 600;
-  flex: 1;
-}
-.card-icon { font-size: 1rem; }
-.card-sub-badge {
-  font-size: 0.68rem;
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  padding: 2px 6px;
+
+.func-icon {
+  width: 24px;
+  height: 24px;
   border-radius: 4px;
+  background: var(--bg-dark);
+  padding: 2px;
 }
 
-/* 1. Thing Info */
-.thing-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.mini-avatar { width: 36px; height: 36px; background: var(--bg-dark); border-radius: 6px; padding: 3px; }
-.thing-atid { font-size: 0.72rem; color: var(--gold); font-family: var(--code); }
-
-.compact-meta-table {
-  width: 100%;
-  font-size: 0.75rem;
-  border-collapse: collapse;
-}
-.compact-meta-table td { padding: 3px 0; }
-.compact-meta-table td:first-child { color: var(--text-muted); width: 40%; }
-.compact-meta-table td:last-child { color: #fff; font-family: var(--code); font-size: 0.72rem; }
-
-/* 2. Microservices Actions List */
-.services-action-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  flex: 1;
-}
-
-.srv-action-card {
-  background: var(--bg-card);
+.func-param-badge {
+  font-family: var(--code);
+  font-size: 0.74rem;
+  background: var(--bg-dark);
+  color: #fde047;
+  padding: 3px 7px;
+  border-radius: 4px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
+  display: inline-block;
 }
 
-.srv-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.srv-name { font-size: 0.82rem; font-weight: 600; }
-.srv-tag {
-  font-size: 0.65rem;
-  padding: 2px 5px;
-  border-radius: 3px;
+.func-type-badge {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 4px;
   font-weight: bold;
   text-transform: uppercase;
+  display: inline-block;
 }
-.srv-tag.sensor { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.srv-tag.actuator { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.func-type-badge.sensor { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+.func-type-badge.actuator { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
 
-.srv-btns-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.srv-val-box {
+.func-output-badge {
   font-family: var(--code);
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: #38bdf8;
+}
+
+.func-action-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.func-val-display {
+  font-family: var(--code);
+  font-size: 0.78rem;
+  color: #34d399;
   background: var(--bg-dark);
-  padding: 3px 6px;
+  padding: 3px 8px;
   border-radius: 4px;
   border: 1px solid var(--border);
+  min-width: 48px;
+  text-align: center;
 }
-
-/* 3. Relationships Summary */
-.relationships-summary-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  max-height: 140px;
-}
-
-.rel-summary-item {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 6px 10px;
-  font-size: 0.75rem;
-}
-.rel-summary-item.order { border-left: 3px solid var(--blue); }
-.rel-summary-item.condition { border-left: 3px solid var(--gold); }
-.rel-summary-name { font-weight: 600; display: flex; justify-content: space-between; }
-.rel-summary-arrow { font-family: var(--code); color: #60a5fa; font-size: 0.72rem; margin-top: 2px; }
 
 /* ============================================================== */
 /* SECTION UNDER: IOT APPLICATION IDE & RELATIVE CONSOLE          */

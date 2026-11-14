@@ -187,97 +187,99 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      renderThingCard();
-      renderServicesList();
-      renderRelationshipsSummary();
+      renderFunctionalitiesTable();
       appEditor.setServices(spaceData.services);
     } catch (e) {
       console.warn("Could not fetch space data:", e);
     }
   }
 
-  function renderThingCard() {
-    if (!spaceData || !spaceData.things || spaceData.things.length === 0) return;
-    const t = spaceData.things[0];
-    document.getElementById("thingNameDisplay").textContent = t.name;
-    document.getElementById("thingAtidDisplay").textContent = `ATID: ${t.thing_id}`;
-    document.getElementById("thingEndpointDisplay").textContent = `${t.ip}:${t.port}`;
-  }
+  function renderFunctionalitiesTable() {
+    const tbody = document.getElementById("functionalitiesTableBody");
+    if (!tbody || !spaceData) return;
+    tbody.innerHTML = "";
 
-  function renderServicesList() {
-    const container = document.getElementById("servicesActionList");
-    if (!container || !spaceData) return;
-    container.innerHTML = "";
-
-    spaceData.services.forEach(s => {
-      const card = document.createElement("div");
-      card.className = "srv-action-card";
-
-      let buttonsHtml = "";
-      if (s.name.includes("Light")) {
-        buttonsHtml = `
-          <div class="srv-btns-row">
-            <button class="btn btn-primary btn-sm" onclick="callHwService('${s.name}', '()', 'disp_Light')">👁 Read LDR</button>
-            <span id="disp_Light" class="srv-val-box">—</span>
-          </div>`;
-      } else if (s.name.includes("Temp")) {
-        buttonsHtml = `
-          <div class="srv-btns-row">
-            <button class="btn btn-primary btn-sm" onclick="callHwService('${s.name}', '()', 'disp_Temp')">🌡 Read Temp</button>
-            <span id="disp_Temp" class="srv-val-box">—</span>
-          </div>`;
-      } else if (s.name.includes("Alarm")) {
-        buttonsHtml = `
-          <div class="srv-btns-row">
-            <button class="btn btn-danger btn-sm" onclick="callHwService('${s.name}', '(1)')">🔴 Turn ON</button>
-            <button class="btn btn-secondary btn-sm" onclick="callHwService('${s.name}', '(0)')">⚪ Turn OFF</button>
-          </div>`;
-      } else if (s.name.includes("Cooling")) {
-        buttonsHtml = `
-          <div class="srv-btns-row">
-            <button class="btn btn-success btn-sm" onclick="callHwService('${s.name}', '(1)')">🟢 Turn ON</button>
-            <button class="btn btn-secondary btn-sm" onclick="callHwService('${s.name}', '(0)')">⚪ Turn OFF</button>
-          </div>`;
-      } else {
-        buttonsHtml = `
-          <div class="srv-btns-row">
-            <button class="btn btn-secondary btn-sm" onclick="callHwService('${s.name}', '${s.is_sensor ? '()' : '(1)'}')">⚡ Test</button>
-          </div>`;
-      }
-
-      card.innerHTML = `
-        <div class="srv-top-row">
-          <span class="srv-name">${s.name}</span>
-          <span class="srv-tag ${s.is_sensor ? 'sensor' : 'actuator'}">${s.is_sensor ? 'Sensor' : 'Actuator'}</span>
-        </div>
-        ${buttonsHtml}
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  function renderRelationshipsSummary() {
-    const container = document.getElementById("relationshipsSummaryList");
-    if (!container || !spaceData) return;
-    container.innerHTML = "";
-
-    if (spaceData.relationships.length === 0) {
-      container.innerHTML = "<p style='color:#64748b; font-size:0.75rem;'>No relationships declared yet.</p>";
+    const services = spaceData.services || [];
+    if (services.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No microservices discovered.</td></tr>';
       return;
     }
 
-    spaceData.relationships.forEach(rel => {
-      const isOrder = rel.relation_type.toLowerCase().includes("order");
-      const item = document.createElement("div");
-      item.className = `rel-summary-item ${isOrder ? 'order' : 'condition'}`;
-      item.innerHTML = `
-        <div class="rel-summary-name">
-          <span>${rel.name}</span>
-          <span style="color:${isOrder ? '#60a5fa' : '#f59e0b'}; font-size:0.68rem; font-weight:bold;">${rel.relation_type}</span>
-        </div>
-        <div class="rel-summary-arrow">${rel.fs_name} &rarr; ${rel.ss_name}</div>
+    services.forEach(s => {
+      const isSensor = s.is_sensor;
+      let icon = "assets/app_icon.svg";
+      let entityName = s.entity_id || "Hardware";
+      let params = "None ()";
+      let outputType = "void";
+      let actionButtons = "";
+
+      if (s.name.includes("Light")) {
+        icon = "assets/sensor_light.svg";
+        entityName = "LightSensor (ADS1115 CH0)";
+        params = "None ()";
+        outputType = "int (0 - 100%)";
+        actionButtons = `
+          <div class="func-action-box">
+            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Light')">👁 Read Light</button>
+            <span id="disp_val_Light" class="func-val-display">—</span>
+          </div>`;
+      } else if (s.name.includes("Temp")) {
+        icon = "assets/sensor_temp.svg";
+        entityName = "TempSensor (Rotary Dial GPIO 20/21)";
+        params = "None ()";
+        outputType = "int (15 - 45 °C)";
+        actionButtons = `
+          <div class="func-action-box">
+            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Temp')">🌡 Read Temp</button>
+            <span id="disp_val_Temp" class="func-val-display">—</span>
+          </div>`;
+      } else if (s.name.includes("Alarm")) {
+        icon = "assets/actuator_alarm.svg";
+        entityName = "AlarmLED (Red LED GPIO 16)";
+        params = "state: int (1 = ON, 0 = OFF)";
+        outputType = "void";
+        actionButtons = `
+          <div class="func-action-box">
+            <button class="btn btn-danger btn-xs" onclick="callHwService('${s.name}', '(1)')">🔴 ON</button>
+            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">⚪ OFF</button>
+          </div>`;
+      } else if (s.name.includes("Cooling")) {
+        icon = "assets/actuator_fan.svg";
+        entityName = "CoolingLED (Green LED GPIO 12)";
+        params = "state: int (1 = ON, 0 = OFF)";
+        outputType = "void";
+        actionButtons = `
+          <div class="func-action-box">
+            <button class="btn btn-success btn-xs" onclick="callHwService('${s.name}', '(1)')">🟢 ON</button>
+            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">⚪ OFF</button>
+          </div>`;
+      } else {
+        params = isSensor ? "None ()" : "state: int";
+        outputType = isSensor ? "int" : "void";
+        actionButtons = `
+          <div class="func-action-box">
+            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '${isSensor ? '()' : '(1)'}')">⚡ Test</button>
+          </div>`;
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <div class="func-name-col">
+            <img src="${icon}" alt="Icon" class="func-icon">
+            <span>${s.name}</span>
+          </div>
+        </td>
+        <td>
+          <span class="func-type-badge ${isSensor ? 'sensor' : 'actuator'}">${isSensor ? 'Sensor' : 'Actuator'}</span>
+        </td>
+        <td style="color:#cbd5e1; font-size:0.75rem;">${entityName}</td>
+        <td><code class="func-param-badge">${params}</code></td>
+        <td><span class="func-output-badge">${outputType}</span></td>
+        <td style="color:#94a3b8; font-size:0.75rem; max-width:240px;">${s.description || 'Hardware microservice'}</td>
+        <td>${actionButtons}</td>
       `;
-      container.appendChild(item);
+      tbody.appendChild(tr);
     });
   }
 
