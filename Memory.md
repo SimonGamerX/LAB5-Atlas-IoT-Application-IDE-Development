@@ -24,8 +24,8 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
 
 ### Requirement 1: Discovery of Available Atlas IoT Things
 - **Two Raspberry Pi Nodes Listed**:
-  - `SmartSpacePi-01` (`MySmartThing01`): Primary breadboard controller hosting ADS1115 LDR light sensor, rotary dial temperature sensor, Red Alert LED (GPIO 16), Green Cooling LED (GPIO 12).
-  - `SmartSpacePi-02` (`MySmartThing02`): Secondary Edge Gateway & Aux Environmental Node hosting DHT22 humidity sensor and audible alert buzzer (GPIO 18).
+  - `SmartSpacePi-01` (`MySmartThing01`): Primary controller for the illumination and emergency alert subsystem, hosting `LightSensor` (ADS1115 CH0 LDR) and Red `AlarmLED` (GPIO 16).
+  - `SmartSpacePi-02` (`MySmartThing02`): Secondary controller for climate monitoring and cooling subsystem, hosting `TempSensor` (Rotary Encoder GPIO 20/21) and Green `CoolingLED` (GPIO 12).
 - **Background Scanning Engine**: Implemented in `backend/tweet_listener.py`. Runs independent daemon threads listening on:
   - **UDP Multicast**: Group `232.1.1.1` on port `1235`.
   - **MQTT Public Broker**: `broker.hivemq.com:1883`, subscribed to topic `/Atlas/#`.
@@ -40,7 +40,7 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
 ### Requirement 2: Display Space Meta Information & Unified Interface
 - **Tabs Architecture (No Numbers in Titles)**:
   - `📟 Things`: Displays both Raspberry Pi 4B nodes side-by-side with complete network identity, communication language, hosted entities, and direct ping node test buttons.
-  - `⚡ Services & Functionalities`: Scaled table listing all microservices across both Things with Owning Thing tag, signatures, input parameters, output types, and direct breadboard triggers (`[🔴 ON]`, `[⚪ OFF]`, `[👁 Read Light]`, `[🌡 Read Temp]`, `[💧 Read Humidity]`, `[📢 ON]`).
+  - `⚡ Services & Functionalities`: Scaled table listing all microservices across both Things with Owning Thing tag, signatures, input parameters, output types, and direct breadboard triggers (`[🔴 ON]`, `[⚪ OFF]`, `[👁 Read Light]`, `[🌡 Read Temp]`, `[🟢 ON]`).
   - `🕸 Relationships`: Features an **interactive SVG Topological Dependency Graph** displaying directed cubic-bezier curves connecting First Service (FS) to Second Service (SS) across both RPis, with color-coded Order-based and Condition-based links and pill labels, plus detailed relationship descriptor cards.
   - `🧩 Apps & Editor`: Visual workflow pipeline builder alongside the relative real-time execution console.
 

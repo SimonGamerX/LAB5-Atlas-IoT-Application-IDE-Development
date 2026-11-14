@@ -197,7 +197,7 @@ class AtlasRequestHandler(SimpleHTTPRequestHandler):
             target_ip = data.get("ip", "127.0.0.1").strip()
             target_port = int(data.get("port", 6668))
             thing_id = data.get("thing_id", "MySmartThing01")
-            test_service = "Read_Light_Level" if thing_id == "MySmartThing01" else "Read_Humidity"
+            test_service = "Read_Light_Level" if thing_id == "MySmartThing01" else "Read_Temperature"
             res = send_atlas_service_call(target_ip, target_port, thing_id, "MySmartSpace", test_service, "()", timeout=3.0)
             if not res.get("success") and target_port != 8080:
                 # Fallback check to port 8080 (Lab 4 Part One server)

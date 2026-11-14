@@ -40,10 +40,8 @@ class MockAtlasThingServer:
         self.state = {
             "light_level": 55,       # 0 - 100%
             "temperature": 24,       # 15 - 45 °C
-            "humidity": 50,          # 20 - 90 %RH
             "alarm_led": 0,          # 0 or 1
-            "cooling_indicator": 0,  # 0 or 1
-            "buzzer": 0              # 0 or 1
+            "cooling_indicator": 0   # 0 or 1
         }
 
     def start(self):
@@ -133,17 +131,6 @@ class MockAtlasThingServer:
                 resp_payload["Return"] = 0
                 resp_payload["Message"] = f"Green Cooling LED set to {val}"
 
-            elif service_name == "Read_Humidity":
-                self.state["humidity"] = max(20, min(90, self.state["humidity"] + random.randint(-1, 1)))
-                resp_payload["Return"] = self.state["humidity"]
-                resp_payload["Value"] = self.state["humidity"]
-
-            elif service_name == "Set_Buzzer_Alert":
-                val = int(arg) if arg.isdigit() else 1
-                self.state["buzzer"] = val
-                resp_payload["Return"] = 0
-                resp_payload["Message"] = f"Secondary Buzzer Alert set to {val}"
-
             else:
                 resp_payload["Return"] = 0
                 resp_payload["Message"] = f"Unknown service {service_name} executed."
@@ -165,7 +152,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
 
     return [
         # ========================================================
-        # RASPBERRY PI 1 (Primary Breadboard Controller)
+        # RASPBERRY PI 1: Light Sensor & Red Alarm LED
         # ========================================================
         # 1. Identity_Thing (RPi 1)
         {
@@ -176,7 +163,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Model": "Raspberry Pi 4 Model B (4GB)",
             "Vendor": "RaspberryPiCo",
             "Owner": "iotpj",
-            "Description": "Primary Breadboard Node: Light & Temperature Sensing, Alert & Cooling Actuation",
+            "Description": "Raspberry Pi 4B Breadboard Node 1: Ambient Light Sensing & Red Alarm Actuation",
             "OS": "Raspbian GNU/Linux 11 (bullseye)"
         },
         # 2. Identity_Language (RPi 1)
@@ -189,7 +176,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "IP": rpi_ip,
             "Port": str(port)
         },
-        # 3. Identity_Entity: LightSensor
+        # 3. Identity_Entity: LightSensor (RPi 1)
         {
             "Tweet Type": "Identity_Entity",
             "Thing ID": "MySmartThing01",
@@ -201,19 +188,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Vendor": "LDR",
             "Description": "Measures ambient light intensity via ADS1115 Channel 0"
         },
-        # 4. Identity_Entity: TempSensor
-        {
-            "Tweet Type": "Identity_Entity",
-            "Thing ID": "MySmartThing01",
-            "Space ID": "MySmartSpace",
-            "Name": "TempSensor",
-            "ID": "Entity_TempSensor",
-            "Type": "Sensor",
-            "Owner": "iotpj",
-            "Vendor": "RotaryEncoder",
-            "Description": "Reads simulated thermostat temperature dial via Rotary Encoder on GPIO 20 and 21"
-        },
-        # 5. Identity_Entity: AlarmLED
+        # 4. Identity_Entity: AlarmLED (RPi 1)
         {
             "Tweet Type": "Identity_Entity",
             "Thing ID": "MySmartThing01",
@@ -225,19 +200,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Vendor": "Generic",
             "Description": "Red Alert indicator LED connected to GPIO 16"
         },
-        # 6. Identity_Entity: CoolingLED
-        {
-            "Tweet Type": "Identity_Entity",
-            "Thing ID": "MySmartThing01",
-            "Space ID": "MySmartSpace",
-            "Name": "CoolingLED",
-            "ID": "Entity_CoolingLED",
-            "Type": "Actuator",
-            "Owner": "iotpj",
-            "Vendor": "Generic",
-            "Description": "Green Cooling/Fan status LED connected to GPIO 12"
-        },
-        # 7. Service: Read_Light_Level
+        # 5. Service: Read_Light_Level (RPi 1)
         {
             "Tweet Type": "Service",
             "Name": "Read_Light_Level",
@@ -251,21 +214,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Description": "Reads ambient light level percentage (0-100) from ADS1115 ADC Channel 0",
             "Keywords": "Light,Sensor,ADC,LDR"
         },
-        # 8. Service: Read_Temperature
-        {
-            "Tweet Type": "Service",
-            "Name": "Read_Temperature",
-            "Thing ID": "MySmartThing01",
-            "Entity ID": "Entity_TempSensor",
-            "Space ID": "MySmartSpace",
-            "Vendor": "RotaryEncoder",
-            "API": "int Read_Temperature()",
-            "Type": "Report",
-            "AppCategory": "Sensing",
-            "Description": "Reads simulated thermostat dial temperature (15-45 C) from Rotary Encoder",
-            "Keywords": "Temperature,Sensor,Thermostat,RotaryEncoder,GPIO"
-        },
-        # 9. Service: Set_Alarm_LED
+        # 6. Service: Set_Alarm_LED (RPi 1)
         {
             "Tweet Type": "Service",
             "Name": "Set_Alarm_LED",
@@ -279,11 +228,75 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Description": "Switches Red Alarm LED ON (1) or OFF (0) on GPIO 16",
             "Keywords": "Alarm,LED,Actuator,GPIO"
         },
-        # 10. Service: Set_Cooling_Indicator
+
+        # ========================================================
+        # RASPBERRY PI 2: Temperature Dial & Green Cooling LED
+        # ========================================================
+        # 7. Identity_Thing (RPi 2)
+        {
+            "Tweet Type": "Identity_Thing",
+            "Thing ID": "MySmartThing02",
+            "Space ID": "MySmartSpace",
+            "Name": "SmartSpacePi-02",
+            "Model": "Raspberry Pi 4 Model B (4GB)",
+            "Vendor": "RaspberryPiCo",
+            "Owner": "iotpj",
+            "Description": "Raspberry Pi 4B Breadboard Node 2: Temperature Dial & Green Cooling Actuation",
+            "OS": "Raspbian GNU/Linux 11 (bullseye)"
+        },
+        # 8. Identity_Language (RPi 2)
+        {
+            "Tweet Type": "Identity_Language",
+            "Thing ID": "MySmartThing02",
+            "Space ID": "MySmartSpace",
+            "Network Name": "MySpaceNetwork",
+            "Communication Language": "JSON/TCP",
+            "IP": rpi2_ip,
+            "Port": str(rpi2_port)
+        },
+        # 9. Identity_Entity: TempSensor (RPi 2)
+        {
+            "Tweet Type": "Identity_Entity",
+            "Thing ID": "MySmartThing02",
+            "Space ID": "MySmartSpace",
+            "Name": "TempSensor",
+            "ID": "Entity_TempSensor",
+            "Type": "Sensor",
+            "Owner": "iotpj",
+            "Vendor": "RotaryEncoder",
+            "Description": "Reads simulated thermostat temperature dial via Rotary Encoder on GPIO 20 and 21"
+        },
+        # 10. Identity_Entity: CoolingLED (RPi 2)
+        {
+            "Tweet Type": "Identity_Entity",
+            "Thing ID": "MySmartThing02",
+            "Space ID": "MySmartSpace",
+            "Name": "CoolingLED",
+            "ID": "Entity_CoolingLED",
+            "Type": "Actuator",
+            "Owner": "iotpj",
+            "Vendor": "Generic",
+            "Description": "Green Cooling/Fan status LED connected to GPIO 12"
+        },
+        # 11. Service: Read_Temperature (RPi 2)
+        {
+            "Tweet Type": "Service",
+            "Name": "Read_Temperature",
+            "Thing ID": "MySmartThing02",
+            "Entity ID": "Entity_TempSensor",
+            "Space ID": "MySmartSpace",
+            "Vendor": "RotaryEncoder",
+            "API": "int Read_Temperature()",
+            "Type": "Report",
+            "AppCategory": "Sensing",
+            "Description": "Reads simulated thermostat dial temperature (15-45 C) from Rotary Encoder",
+            "Keywords": "Temperature,Sensor,Thermostat,RotaryEncoder,GPIO"
+        },
+        # 12. Service: Set_Cooling_Indicator (RPi 2)
         {
             "Tweet Type": "Service",
             "Name": "Set_Cooling_Indicator",
-            "Thing ID": "MySmartThing01",
+            "Thing ID": "MySmartThing02",
             "Entity ID": "Entity_CoolingLED",
             "Space ID": "MySmartSpace",
             "Vendor": "Generic",
@@ -295,113 +308,9 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
         },
 
         # ========================================================
-        # RASPBERRY PI 2 (Secondary Edge Gateway & Aux Node)
+        # RELATIONSHIPS (Intra-Thing & Cross-RPi Linking RPi1 & RPi2)
         # ========================================================
-        # 11. Identity_Thing (RPi 2)
-        {
-            "Tweet Type": "Identity_Thing",
-            "Thing ID": "MySmartThing02",
-            "Space ID": "MySmartSpace",
-            "Name": "SmartSpacePi-02",
-            "Model": "Raspberry Pi 4 Model B (4GB)",
-            "Vendor": "RaspberryPiCo",
-            "Owner": "iotpj",
-            "Description": "Secondary Edge Gateway & Air Quality Node (Companion RPi)",
-            "OS": "Raspbian GNU/Linux 11 (bullseye)"
-        },
-        # 12. Identity_Language (RPi 2)
-        {
-            "Tweet Type": "Identity_Language",
-            "Thing ID": "MySmartThing02",
-            "Space ID": "MySmartSpace",
-            "Network Name": "MySpaceNetwork",
-            "Communication Language": "JSON/TCP",
-            "IP": rpi2_ip,
-            "Port": str(rpi2_port)
-        },
-        # 13. Identity_Entity: HumiditySensor (RPi 2)
-        {
-            "Tweet Type": "Identity_Entity",
-            "Thing ID": "MySmartThing02",
-            "Space ID": "MySmartSpace",
-            "Name": "HumiditySensor",
-            "ID": "Entity_HumiditySensor",
-            "Type": "Sensor",
-            "Owner": "iotpj",
-            "Vendor": "DHT22",
-            "Description": "Measures indoor ambient relative humidity (0-100% RH)"
-        },
-        # 14. Identity_Entity: StatusBuzzer (RPi 2)
-        {
-            "Tweet Type": "Identity_Entity",
-            "Thing ID": "MySmartThing02",
-            "Space ID": "MySmartSpace",
-            "Name": "StatusBuzzer",
-            "ID": "Entity_StatusBuzzer",
-            "Type": "Actuator",
-            "Owner": "iotpj",
-            "Vendor": "Generic",
-            "Description": "Audible alert buzzer connected to GPIO 18"
-        },
-        # 15. Service: Read_Humidity (RPi 2)
-        {
-            "Tweet Type": "Service",
-            "Name": "Read_Humidity",
-            "Thing ID": "MySmartThing02",
-            "Entity ID": "Entity_HumiditySensor",
-            "Space ID": "MySmartSpace",
-            "Vendor": "DHT22",
-            "API": "int Read_Humidity()",
-            "Type": "Report",
-            "AppCategory": "Sensing",
-            "Description": "Reads indoor relative humidity percentage (0-100% RH)",
-            "Keywords": "Humidity,Sensor,AirQuality,DHT22"
-        },
-        # 16. Service: Set_Buzzer_Alert (RPi 2)
-        {
-            "Tweet Type": "Service",
-            "Name": "Set_Buzzer_Alert",
-            "Thing ID": "MySmartThing02",
-            "Entity ID": "Entity_StatusBuzzer",
-            "Space ID": "MySmartSpace",
-            "Vendor": "Generic",
-            "API": "void Set_Buzzer_Alert(int state)",
-            "Type": "Action",
-            "AppCategory": "Actuation",
-            "Description": "Switches secondary audible alert buzzer ON (1) or OFF (0) on GPIO 18",
-            "Keywords": "Buzzer,Alarm,Sound,Actuator,GPIO"
-        },
-
-        # ========================================================
-        # RELATIONSHIPS (Intra-Thing & Cross-RPi)
-        # ========================================================
-        # 17. Relationship 1: Order-based (Intra-Thing 1)
-        {
-            "Tweet Type": "Relationship",
-            "Thing ID": "MySmartThing01",
-            "Space ID": "MySmartSpace",
-            "Name": "Rel_Temp_Cooling_Order",
-            "Owner": "iotpj",
-            "Category": "Cooperative",
-            "Type": "Order-based",
-            "Description": "Service Set_Cooling_Indicator may run only after Read_Temperature completes",
-            "FS name": "Read_Temperature",
-            "SS name": "Set_Cooling_Indicator"
-        },
-        # 18. Relationship 2: Condition-based (Intra-Thing 1)
-        {
-            "Tweet Type": "Relationship",
-            "Thing ID": "MySmartThing01",
-            "Space ID": "MySmartSpace",
-            "Name": "Rel_Overheat_Cooling",
-            "Owner": "iotpj",
-            "Category": "Cooperative",
-            "Type": "Condition-based",
-            "Description": "Service Set_Cooling_Indicator runs if Read_Temperature > 28 C",
-            "FS name": "Read_Temperature",
-            "SS name": "Set_Cooling_Indicator"
-        },
-        # 19. Relationship 3: Condition-based Dark Alarm (Intra-Thing 1)
+        # 13. Relationship 1: Condition-based Darkness Alert (RPi 1)
         {
             "Tweet Type": "Relationship",
             "Thing ID": "MySmartThing01",
@@ -414,31 +323,44 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "FS name": "Read_Light_Level",
             "SS name": "Set_Alarm_LED"
         },
-        # 20. Relationship 4: Condition-based Humidity Cooling (Cross-RPi: Thing 2 -> Thing 1)
+        # 14. Relationship 2: Order-based Temp Cooling (RPi 2)
         {
             "Tweet Type": "Relationship",
             "Thing ID": "MySmartThing02",
             "Space ID": "MySmartSpace",
-            "Name": "Rel_Humidity_Cooling",
-            "Owner": "iotpj",
-            "Category": "Cooperative",
-            "Type": "Condition-based",
-            "Description": "Service Set_Cooling_Indicator (RPi 1) runs if Read_Humidity > 75% RH (RPi 2)",
-            "FS name": "Read_Humidity",
-            "SS name": "Set_Cooling_Indicator"
-        },
-        # 21. Relationship 5: Order-based Hazard Buzzer (Cross-RPi: Thing 1 -> Thing 2)
-        {
-            "Tweet Type": "Relationship",
-            "Thing ID": "MySmartThing01",
-            "Space ID": "MySmartSpace",
-            "Name": "Rel_Hazard_Buzzer_Order",
+            "Name": "Rel_Temp_Cooling_Order",
             "Owner": "iotpj",
             "Category": "Cooperative",
             "Type": "Order-based",
-            "Description": "Service Set_Buzzer_Alert (RPi 2) runs after Set_Alarm_LED (RPi 1) completes",
-            "FS name": "Set_Alarm_LED",
-            "SS name": "Set_Buzzer_Alert"
+            "Description": "Service Set_Cooling_Indicator may run only after Read_Temperature completes",
+            "FS name": "Read_Temperature",
+            "SS name": "Set_Cooling_Indicator"
+        },
+        # 15. Relationship 3: Condition-based Overheat Cooling (RPi 2)
+        {
+            "Tweet Type": "Relationship",
+            "Thing ID": "MySmartThing02",
+            "Space ID": "MySmartSpace",
+            "Name": "Rel_Overheat_Cooling",
+            "Owner": "iotpj",
+            "Category": "Cooperative",
+            "Type": "Condition-based",
+            "Description": "Service Set_Cooling_Indicator runs if Read_Temperature > 28 C",
+            "FS name": "Read_Temperature",
+            "SS name": "Set_Cooling_Indicator"
+        },
+        # 16. Relationship 4: Condition-based Thermal Hazard (Cross-RPi: RPi 2 -> RPi 1)
+        {
+            "Tweet Type": "Relationship",
+            "Thing ID": "MySmartThing02",
+            "Space ID": "MySmartSpace",
+            "Name": "Rel_Cross_Thermal_Hazard",
+            "Owner": "iotpj",
+            "Category": "Cooperative",
+            "Type": "Condition-based",
+            "Description": "Thermal Hazard Alert: Service Set_Alarm_LED (RPi 1) runs if Read_Temperature (RPi 2) > 35 C",
+            "FS name": "Read_Temperature",
+            "SS name": "Set_Alarm_LED"
         }
     ]
 

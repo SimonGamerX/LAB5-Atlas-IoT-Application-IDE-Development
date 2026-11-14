@@ -27,24 +27,28 @@ http://localhost:5050
 
 ### 📟 Things
 - **Two Raspberry Pis Listed**:
-  - **SmartSpacePi-01 (Primary Breadboard Controller)**: Hosts ADS1115 LDR light sensor, rotary dial temperature sensor, Red Alert LED (GPIO 16), and Green Cooling LED (GPIO 12).
-  - **SmartSpacePi-02 (Secondary Edge Gateway & Aux Node)**: Hosts indoor humidity sensor (DHT22) and secondary audible alert buzzer (GPIO 18).
+  - **SmartSpacePi-01 (Primary Controller - Light & Alarm Subsystem)**:
+    - ATID: `MySmartThing01`
+    - Hosted Hardware Entities: `LightSensor` (ADS1115 CH0 Analog Light Sensor), `AlarmLED` (Red LED on GPIO 16).
+    - Hosted Services: `Read_Light_Level`, `Set_Alarm_LED`.
+  - **SmartSpacePi-02 (Secondary Controller - Climate & Cooling Subsystem)**:
+    - ATID: `MySmartThing02`
+    - Hosted Hardware Entities: `TempSensor` (Rotary Dial on GPIO 20/21), `CoolingLED` (Green LED on GPIO 12).
+    - Hosted Services: `Read_Temperature`, `Set_Cooling_Indicator`.
 - Complete metadata (ATID, IP:Port, Model, OS, Owner, Vendor, hosted entities) with live node ping test buttons.
 
 ### ⚡ Services & Functionalities
 - **Scaled Functionalities & Parameters Table**: Lists microservices for each Thing with Owning Thing tag, method signatures, categories, hardware entities, input parameters, and output types.
 - **Direct Breadboard Action Controls**:
-  - `[👁 Read Light]` (shows live light level percentage from ADS1115 LDR)
-  - `[🌡 Read Temp]` (shows live temperature dial in °C from Rotary Encoder)
-  - `[💧 Read Humidity]` (shows live humidity percentage)
-  - `[🔴 ON]` / `[⚪ OFF]` (controls physical Red Alarm LED on GPIO 16)
-  - `[🟢 ON]` / `[⚪ OFF]` (controls physical Green Cooling LED on GPIO 12)
-  - `[📢 ON]` / `[⚪ OFF]` (controls secondary alert buzzer)
+  - `[👁 Read Light]` (shows live light level percentage from ADS1115 LDR on RPi 1)
+  - `[🌡 Read Temp]` (shows live temperature dial in °C from Rotary Encoder on RPi 2)
+  - `[🔴 ON]` / `[⚪ OFF]` (controls physical Red Alarm LED on GPIO 16 on RPi 1)
+  - `[🟢 ON]` / `[⚪ OFF]` (controls physical Green Cooling LED on GPIO 12 on RPi 2)
 
 ### 🕸 Relationships
 - **Topological Dependency Graph**: Interactive SVG visualization with directed cubic-bezier curves, glowing links, and pill expression labels connecting First Service (FS) to Second Service (SS) across both RPis:
-  - 🟦 **Order-based dependencies** (e.g. `Read_Temperature` $\rightarrow$ `Set_Cooling_Indicator`, `Set_Alarm_LED` $\rightarrow$ `Set_Buzzer_Alert`)
-  - 🟨 **Condition-based rules** (e.g. `Light < 15%`, `Temp > 28°C`, `Humidity > 75% RH`)
+  - 🟦 **Order-based dependencies** (e.g. `Read_Temperature` $\rightarrow$ `Set_Cooling_Indicator`)
+  - 🟨 **Condition-based rules** (e.g. `Light < 15%`, `Temp > 28°C`, and cross-thing hazard `Temp > 35°C`)
 - Interactive hover effects highlighting linked nodes and displaying live inspection details.
 - Relationship Descriptors Catalog cards underneath the graph.
 

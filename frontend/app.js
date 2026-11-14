@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return `<span class="entity-tag ${isSens ? 'sensor' : 'actuator'}">${isSens ? '👁' : '⚡'} ${e.name} <small>(${e.entity_type})</small></span>`;
       }).join("");
 
-      const roleTitle = isThing1 ? "Primary Breadboard Controller" : "Secondary Gateway & Aux Node";
+      const roleTitle = isThing1 ? "Primary Controller (Light & Alarm Subsystem)" : "Secondary Controller (Climate & Cooling Subsystem)";
       const roleBadgeClass = isThing1 ? "" : "aux";
       const resSpanId = `ping_res_${thing.thing_id}`;
 
@@ -360,16 +360,6 @@ document.addEventListener("DOMContentLoaded", () => {
             <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Temp')">🌡 Read Temp</button>
             <span id="disp_val_Temp" class="func-val-display">—</span>
           </div>`;
-      } else if (s.name.includes("Humidity")) {
-        icon = "assets/sensor_temp.svg";
-        entityName = "HumiditySensor (DHT22)";
-        params = "None ()";
-        outputType = "int (0 - 100% RH)";
-        actionButtons = `
-          <div class="func-action-box">
-            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Humidity')">💧 Read Humidity</button>
-            <span id="disp_val_Humidity" class="func-val-display">—</span>
-          </div>`;
       } else if (s.name.includes("Alarm")) {
         icon = "assets/actuator_alarm.svg";
         entityName = "AlarmLED (Red LED GPIO 16)";
@@ -388,16 +378,6 @@ document.addEventListener("DOMContentLoaded", () => {
         actionButtons = `
           <div class="func-action-box">
             <button class="btn btn-success btn-xs" onclick="callHwService('${s.name}', '(1)')">🟢 ON</button>
-            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">⚪ OFF</button>
-          </div>`;
-      } else if (s.name.includes("Buzzer")) {
-        icon = "assets/actuator_alarm.svg";
-        entityName = "StatusBuzzer (GPIO 18)";
-        params = "state: int (1 = ON, 0 = OFF)";
-        outputType = "void";
-        actionButtons = `
-          <div class="func-action-box">
-            <button class="btn btn-danger btn-xs" onclick="callHwService('${s.name}', '(1)')">📢 ON</button>
             <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">⚪ OFF</button>
           </div>`;
       } else {
@@ -452,14 +432,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Node layout definitions
-    // Col 1: Sensors (Left), Col 2: Primary Actuators (Center), Col 3: Secondary Actuators (Right)
+    // Left Col: Sensors (Col 1), Right Col: Actuators (Col 2)
     const nodeCoords = {
-      "Read_Light_Level":      { x: 40,  y: 40,  w: 250, h: 72, icon: "👁", title: "Read_Light_Level", sub: "LightSensor (ADS1115 CH0)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Read_Temperature":      { x: 40,  y: 175, w: 250, h: 72, icon: "🌡", title: "Read_Temperature", sub: "TempSensor (Rotary Dial GPIO 20/21)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Read_Humidity":         { x: 40,  y: 310, w: 250, h: 72, icon: "💧", title: "Read_Humidity", sub: "HumiditySensor (DHT22)", thing: "MySmartThing02", color: "#a78bfa" },
-      "Set_Alarm_LED":         { x: 440, y: 70,  w: 240, h: 72, icon: "🔴", title: "Set_Alarm_LED", sub: "AlarmLED (Red LED GPIO 16)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Set_Cooling_Indicator": { x: 440, y: 250, w: 240, h: 72, icon: "🟢", title: "Set_Cooling_Indicator", sub: "CoolingLED (Green LED GPIO 12)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Set_Buzzer_Alert":      { x: 760, y: 70,  w: 200, h: 72, icon: "📢", title: "Set_Buzzer_Alert", sub: "StatusBuzzer (GPIO 18)", thing: "MySmartThing02", color: "#a78bfa" }
+      "Read_Light_Level":      { x: 60,  y: 70,  w: 260, h: 74, icon: "👁", title: "Read_Light_Level", sub: "LightSensor (ADS1115 CH0)", thing: "MySmartThing01", color: "#38bdf8" },
+      "Read_Temperature":      { x: 60,  y: 250, w: 260, h: 74, icon: "🌡", title: "Read_Temperature", sub: "TempSensor (Rotary Dial GPIO 20/21)", thing: "MySmartThing02", color: "#a78bfa" },
+      "Set_Alarm_LED":         { x: 580, y: 70,  w: 260, h: 74, icon: "🔴", title: "Set_Alarm_LED", sub: "AlarmLED (Red LED GPIO 16)", thing: "MySmartThing01", color: "#38bdf8" },
+      "Set_Cooling_Indicator": { x: 580, y: 250, w: 260, h: 74, icon: "🟢", title: "Set_Cooling_Indicator", sub: "CoolingLED (Green LED GPIO 12)", thing: "MySmartThing02", color: "#a78bfa" }
     };
 
     // Edge layout connections & labels
@@ -469,40 +447,32 @@ document.addEventListener("DOMContentLoaded", () => {
         from: "Read_Light_Level", to: "Set_Alarm_LED",
         type: "condition",
         expr: "Light < 15%",
-        fromPt: [290, 76], toPt: [440, 95],
-        mid: [365, 85]
-      },
-      {
-        relName: "Rel_Hazard_Buzzer_Order",
-        from: "Set_Alarm_LED", to: "Set_Buzzer_Alert",
-        type: "order",
-        expr: "Order: After Alarm",
-        fromPt: [680, 106], toPt: [760, 106],
-        mid: [720, 106]
+        fromPt: [320, 107], toPt: [580, 107],
+        mid: [450, 95]
       },
       {
         relName: "Rel_Temp_Cooling_Order",
         from: "Read_Temperature", to: "Set_Cooling_Indicator",
         type: "order",
         expr: "Order: After Read",
-        fromPt: [290, 195], toPt: [440, 270],
-        mid: [365, 230]
+        fromPt: [320, 275], toPt: [580, 275],
+        mid: [450, 255]
       },
       {
         relName: "Rel_Overheat_Cooling",
         from: "Read_Temperature", to: "Set_Cooling_Indicator",
         type: "condition",
         expr: "Temp > 28°C",
-        fromPt: [290, 225], toPt: [440, 295],
-        mid: [365, 262]
+        fromPt: [320, 299], toPt: [580, 299],
+        mid: [450, 319]
       },
       {
-        relName: "Rel_Humidity_Cooling",
-        from: "Read_Humidity", to: "Set_Cooling_Indicator",
+        relName: "Rel_Cross_Thermal_Hazard",
+        from: "Read_Temperature", to: "Set_Alarm_LED",
         type: "condition",
-        expr: "Humidity > 75% RH",
-        fromPt: [290, 346], toPt: [440, 315],
-        mid: [365, 332]
+        expr: "Temp > 35°C (Cross-RPi)",
+        fromPt: [320, 265], toPt: [580, 125],
+        mid: [450, 185]
       }
     ];
 
