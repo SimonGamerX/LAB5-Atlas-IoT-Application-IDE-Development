@@ -4,6 +4,27 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Light / Dark theme switcher
+  const btnThemeToggle = document.getElementById("btnThemeToggle");
+  const lblThemeToggle = document.getElementById("lblThemeToggle");
+  function syncThemeUI() {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if (lblThemeToggle) lblThemeToggle.textContent = isDark ? "Light" : "Dark";
+    if (btnThemeToggle) btnThemeToggle.setAttribute("aria-pressed", String(isDark));
+  }
+  syncThemeUI();
+  btnThemeToggle?.addEventListener("click", () => {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if (isDark) {
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.setItem("atlas_ide_theme", "light");
+    } else {
+      document.documentElement.setAttribute("data-theme", "dark");
+      localStorage.setItem("atlas_ide_theme", "dark");
+    }
+    syncThemeUI();
+  });
+
   let spaceData = null;
   let appEditor = new IoTAppEditor();
   let currentFilter = "all";
@@ -270,19 +291,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     things.forEach((thing, idx) => {
-      const isThing1 = thing.thing_id === "MySmartThing01";
+      const isThing1 = thing.thing_id === "MySmartThing01" || idx === 0;
       const card = document.createElement("div");
       card.className = "thing-card";
 
-      const entities = (spaceData.entities || []).filter(e => e.thing_id === thing.thing_id);
+      const hiddenThingsTabEntities = new Set(["TempSensor", "CoolingLED"]);
+      const entities = (spaceData.entities || []).filter(
+        e => e.thing_id === thing.thing_id && !hiddenThingsTabEntities.has(e.name)
+      );
       const tags = entities.map(e => {
         const isSens = (e.entity_type || "").toLowerCase().includes("sensor");
         return `<span class="entity-tag ${isSens ? 'sensor' : 'actuator'}">${e.name} <small>(${e.entity_type})</small></span>`;
       }).join("");
 
-      const roleTitle = isThing1 ? "Primary Controller (Light & Alarm)" : "Secondary Controller (Climate & Cooling)";
+      const rawModel = (thing.model || "").trim();
+      const hardwareModel = (!rawModel || rawModel === "4B" || rawModel.toLowerCase().includes("raspberry pi 4"))
+        ? "Raspberry Pi 4 Model B (4GB)"
+        : rawModel;
+
+      const rawOs = (thing.os || "").trim();
+      const operatingSystem = (!rawOs || rawOs.toLowerCase() === "raspbian" || rawOs.toLowerCase().includes("bullseye"))
+        ? "Raspbian GNU/Linux 11 (bullseye)"
+        : rawOs;
+
+      const ownerVendor = `${thing.owner || "iotpj"} / ${thing.vendor || "RaspberryPiCo"}`;
+      const thingDescription = isThing1
+        ? "Raspberry Pi 4B smart space controller (Primary Edge Node 1)"
+        : `Raspberry Pi 4B smart space controller (Distributed Edge Node ${idx + 1})`;
+
+      const roleTitle = isThing1 ? "Edge Node 1 (Primary)" : `Edge Node ${idx + 1} (Peer)`;
       const roleBadgeClass = isThing1 ? "" : "aux";
       const resSpanId = `ping_res_${thing.thing_id}`;
+      const entitiesBlock = entities.length > 0
+        ? `<div class="thing-entities">
+            <div class="entities-heading">Hosted Hardware Entities (${entities.length})</div>
+            <div class="entities-tags">${tags}</div>
+          </div>`
+        : "";
 
       card.innerHTML = `
         <div class="thing-card-header">
@@ -295,16 +340,14 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="thing-status-pill"><span class="dot"></span> Online</span>
         </div>
         <table class="thing-meta-table">
+          <tr><td>Description</td><td>${thingDescription}</td></tr>
           <tr><td>Target Address</td><td class="mono"><strong>${thing.ip}:${thing.port}</strong></td></tr>
-          <tr><td>Hardware Model</td><td>${thing.model || 'Raspberry Pi 4 Model B (4GB)'}</td></tr>
-          <tr><td>Operating System</td><td>${thing.os || 'Raspbian GNU/Linux 11 (bullseye)'}</td></tr>
+          <tr><td>Hardware Model</td><td>${hardwareModel}</td></tr>
+          <tr><td>Operating System</td><td>${operatingSystem}</td></tr>
           <tr><td>Protocol / Language</td><td class="mono">JSON / TCP (Port ${thing.port})</td></tr>
-          <tr><td>Owner / Vendor</td><td>${thing.owner || 'iotpj'} / ${thing.vendor || 'RaspberryPiCo'}</td></tr>
+          <tr><td>Owner / Vendor</td><td>${ownerVendor}</td></tr>
         </table>
-        <div class="thing-entities">
-          <div class="entities-heading">Hosted Hardware Entities (${entities.length})</div>
-          <div class="entities-tags">${tags || '<span class="tone-muted">No entities registered</span>'}</div>
-        </div>
+        ${entitiesBlock}
         <div class="thing-card-footer">
           <button class="btn btn-secondary btn-xs" onclick="pingThingNode('${thing.thing_id}', '${thing.ip}', ${thing.port}, '${resSpanId}')">
             Ping / Test Node
@@ -626,20 +669,20 @@ document.addEventListener("DOMContentLoaded", () => {
     let svgContent = `
       <defs>
         <marker id="arrow-order" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1b6c80" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
         </marker>
         <marker id="arrow-condition" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#a86f0c" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--chart-3)" />
         </marker>
         <marker id="arrow-sequential" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2f70bb" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--chart-2)" />
         </marker>
         <marker id="arrow-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1e7b4f" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--positive)" />
         </marker>
         <linearGradient id="nodeGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#ffffff" />
-          <stop offset="100%" stop-color="#f9fbfc" />
+          <stop offset="0%" stop-color="var(--node-grad-top)" />
+          <stop offset="100%" stop-color="var(--node-grad-bot)" />
         </linearGradient>
       </defs>
     `;
@@ -648,10 +691,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (edgesToRender.length === 0 && currentGraphSource === "app") {
       svgContent += `
         <g transform="translate(460, 210)" text-anchor="middle">
-          <rect x="-26" y="-50" width="52" height="52" rx="12" fill="#ffffff" stroke="#d5d8dc" stroke-width="1.5" />
-          <path d="M452 176h16M460 168v16" transform="translate(-460,-200)" stroke="#1b6c80" stroke-width="2" stroke-linecap="round"/>
-          <text y="24" fill="#131416" font-size="15" font-weight="600">Canvas in Apps &amp; Editor has no steps</text>
-          <text y="46" fill="#5d5f60" font-size="12.5">Switch to the Apps &amp; Editor tab and add Type 1, 2, or 3 steps to generate relationships.</text>
+          <rect x="-26" y="-50" width="52" height="52" rx="12" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5" />
+          <path d="M452 176h16M460 168v16" transform="translate(-460,-200)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <text y="24" fill="var(--text)" font-size="15" font-weight="600">Canvas in Apps &amp; Editor has no steps</text>
+          <text y="46" fill="var(--muted)" font-size="12.5">Switch to the Apps &amp; Editor tab and add Type 1, 2, or 3 steps to generate relationships.</text>
         </g>
       `;
       svg.innerHTML = svgContent;
@@ -680,19 +723,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const totalInPair = pairCounts[k];
       const offset = totalInPair > 1 ? (idxInPair - (totalInPair - 1) / 2) * 32 : 0;
 
-      let strokeColor = "#1b6c80";
+      let strokeColor = "var(--accent)";
       let markerId = "arrow-order";
       if (e.type === "order") {
-        strokeColor = "#1b6c80";
+        strokeColor = "var(--accent)";
         markerId = "arrow-order";
       } else if (e.type === "condition") {
-        strokeColor = "#a86f0c";
+        strokeColor = "var(--chart-3)";
         markerId = "arrow-condition";
       } else if (e.type === "sequential") {
-        strokeColor = "#2f70bb";
+        strokeColor = "var(--chart-2)";
         markerId = "arrow-sequential";
       } else if (e.type === "loop") {
-        strokeColor = "#1e7b4f";
+        strokeColor = "var(--positive)";
         markerId = "arrow-loop";
       }
 
@@ -778,16 +821,16 @@ document.addEventListener("DOMContentLoaded", () => {
       svgContent += `
         <g class="graph-node ${nodeClass}" id="node_${key}" data-node="${key}" onmouseenter="highlightGraphNode('${key}')" onmouseleave="resetGraphHighlight()">
           <rect class="graph-node-rect" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8" />
-          <rect x="${n.x + 12}" y="${n.y + 18}" width="28" height="28" rx="6" fill="${isThing2 ? '#ebf2fb' : '#e9f3f6'}" stroke="${isThing2 ? '#d0e0f5' : '#cbe2e8'}" stroke-width="1" />
-          <text x="${n.x + 26}" y="${n.y + 36}" font-size="12" font-weight="600" font-family="var(--code)" text-anchor="middle" fill="${isThing2 ? '#2f70bb' : '#1b6c80'}">${n.icon}</text>
+          <rect x="${n.x + 12}" y="${n.y + 18}" width="28" height="28" rx="6" fill="${isThing2 ? 'var(--chart-2-soft)' : 'var(--accent-soft)'}" stroke="${isThing2 ? 'var(--chart-2-border)' : 'var(--accent-border)'}" stroke-width="1" />
+          <text x="${n.x + 26}" y="${n.y + 36}" font-size="12" font-weight="600" font-family="var(--code)" text-anchor="middle" fill="${isThing2 ? 'var(--chart-2)' : 'var(--accent)'}">${n.icon}</text>
           <text class="graph-node-title" x="${n.x + 50}" y="${n.y + 26}">${n.title}</text>
           <text class="graph-node-sub" x="${n.x + 50}" y="${n.y + 44}">${n.sub}</text>
-          <text class="graph-node-thing" x="${n.x + 50}" y="${n.y + 60}" fill="${isThing2 ? '#2f70bb' : '#1b6c80'}">${n.thing}</text>
-          <text x="${n.x + n.w - 14}" y="${n.y + 22}" fill="${isUsed ? '#1e7b4f' : '#6b6b6b'}" font-size="${isUsed ? '10.5' : '10'}" font-weight="${isUsed ? '600' : '400'}" text-anchor="end">${isUsed ? 'Active' : 'Idle'}</text>
+          <text class="graph-node-thing" x="${n.x + 50}" y="${n.y + 60}" fill="${isThing2 ? 'var(--chart-2)' : 'var(--accent)'}">${n.thing}</text>
+          <text x="${n.x + n.w - 14}" y="${n.y + 22}" fill="${isUsed ? 'var(--positive)' : 'var(--faint)'}" font-size="${isUsed ? '10.5' : '10'}" font-weight="${isUsed ? '600' : '400'}" text-anchor="end">${isUsed ? 'Active' : 'Idle'}</text>
           
           <!-- Port dots -->
-          <circle cx="${n.x}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#1b6c80' : '#cdced1'}" stroke="#ffffff" stroke-width="1.5" />
-          <circle cx="${n.x + n.w}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#1b6c80' : '#cdced1'}" stroke="#ffffff" stroke-width="1.5" />
+          <circle cx="${n.x}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? 'var(--accent)' : 'var(--control)'}" stroke="var(--surface)" stroke-width="1.5" />
+          <circle cx="${n.x + n.w}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? 'var(--accent)' : 'var(--control)'}" stroke="var(--surface)" stroke-width="1.5" />
         </g>
       `;
     });
@@ -854,7 +897,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <div>
         <span class="inspect-title">${e.relName}</span>
         <span class="inspect-badge ${e.type}">${e.type}</span>
-        <span style="color:#131416; margin-left:10px;"><strong>${e.from}</strong> <span class="tone-muted">(${fromThing})</span> &rarr; <strong>${e.to}</strong> <span class="tone-muted">(${toThing})</span></span>
+        <span style="color:var(--text); margin-left:10px;"><strong>${e.from}</strong> <span class="tone-muted">(${fromThing})</span> &rarr; <strong>${e.to}</strong> <span class="tone-muted">(${toThing})</span></span>
         ${isCross ? '<span class="rel-card-cross" style="margin-left:8px;">Cross-RPi Distributed</span>' : ''}
       </div>
       <div class="tone-muted" style="font-size:12px;">

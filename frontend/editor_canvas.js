@@ -77,7 +77,7 @@ class IoTAppEditor {
     this.availableServices.forEach(s => {
       const btn = document.createElement("button");
       btn.className = "palette-srv-btn";
-      btn.innerHTML = `+ ${s.name} <span style="font-size:11px; color:${s.is_sensor ? '#1b6c80' : '#92400e'}">[${s.is_sensor ? 'Sensor' : 'Actuator'}]</span>`;
+      btn.innerHTML = `+ ${s.name} <span style="font-size:11px; color:${s.is_sensor ? 'var(--accent)' : 'var(--warning)'}">[${s.is_sensor ? 'Sensor' : 'Actuator'}]</span>`;
       btn.addEventListener("click", () => {
         this.addStep("Type1", s.name);
       });
@@ -194,7 +194,7 @@ class IoTAppEditor {
 
     if (this.steps.length === 0) {
       container.innerHTML = `
-        <div style="text-align:center; padding:30px; color:#5d5f60;">
+        <div style="text-align:center; padding:30px; color:var(--muted);">
           <p>Canvas is empty.</p>
           <p style="font-size:0.8rem; margin-top:4px;">Click a construct button on the left to add your first execution step.</p>
         </div>

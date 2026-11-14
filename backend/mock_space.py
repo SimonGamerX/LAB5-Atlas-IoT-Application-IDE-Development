@@ -163,7 +163,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Model": "Raspberry Pi 4 Model B (4GB)",
             "Vendor": "RaspberryPiCo",
             "Owner": "iotpj",
-            "Description": "Raspberry Pi 4B Breadboard Node 1: Ambient Light Sensing & Red Alarm Actuation",
+            "Description": "Raspberry Pi 4B smart space controller (Primary Edge Node 1)",
             "OS": "Raspbian GNU/Linux 11 (bullseye)"
         },
         # 2. Identity_Language (RPi 1)
@@ -241,7 +241,7 @@ def generate_lab4_tweets(rpi_ip: str = "127.0.0.1", port: int = 6668, rpi2_ip: s
             "Model": "Raspberry Pi 4 Model B (4GB)",
             "Vendor": "RaspberryPiCo",
             "Owner": "iotpj",
-            "Description": "Raspberry Pi 4B Breadboard Node 2: Temperature Dial & Green Cooling Actuation",
+            "Description": "Raspberry Pi 4B smart space controller (Distributed Edge Node 2)",
             "OS": "Raspbian GNU/Linux 11 (bullseye)"
         },
         # 8. Identity_Language (RPi 2)
