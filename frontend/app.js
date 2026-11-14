@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.detected && data.detected.length > 0) {
         const found = data.detected[0];
         inputRpiIp.value = found.ip;
-        hwStatusFeedback.innerHTML = `<span style="color:#34d399;">✓ Raspberry Pi detected at ${found.ip} (MAC: ${found.mac})</span>`;
+        hwStatusFeedback.innerHTML = `<span class="tone-positive">Raspberry Pi detected at ${found.ip} (MAC: ${found.mac})</span>`;
       } else {
         hwStatusFeedback.textContent = "No Raspberry Pi found automatically. Please enter IP manually.";
       }
@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btnTestHw?.addEventListener("click", async () => {
     const ip = inputRpiIp.value.trim();
     const port = parseInt(selRpiPort.value) || 6668;
-    hwStatusFeedback.textContent = `⚡ Running breadboard boot self-test on ${ip}:${port}...`;
+    hwStatusFeedback.textContent = `Running breadboard boot self-test on ${ip}:${port}...`;
     hwStatusFeedback.className = "hw-feedback";
 
     try {
@@ -138,17 +138,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const d = await res.json();
       if (d.success && d.results) {
         const r = d.results;
-        const msg = `✅ Breadboard Verified! Red LED: ${r.red_led ? 'OK' : 'ERR'} | Green LED: ${r.green_led ? 'OK' : 'ERR'} | Light: ${r.light}% | Temp: ${r.temp}°C`;
-        hwStatusFeedback.textContent = msg;
+        const msg = `Breadboard verified — Red LED: ${r.red_led ? 'OK' : 'ERR'} | Green LED: ${r.green_led ? 'OK' : 'ERR'} | Light: ${r.light}% | Temp: ${r.temp} C`;
+        hwStatusFeedback.innerHTML = `<span class="tone-positive">${msg}</span>`;
         hwStatusFeedback.className = "hw-feedback ok";
-        alert(`✓ Breadboard Self-Test Succeeded!\n\n1. Red Alert LED (GPIO 16): Flashed\n2. Green Cooling LED (GPIO 12): Flashed\n3. Ambient Light (ADS1115 CH0): ${r.light}%\n4. Thermostat Dial (Rotary GPIO 20/21): ${r.temp}°C\n\nActive Server Port: ${d.active_port}`);
+        alert(`Breadboard Self-Test Succeeded\n\n1. Red Alert LED (GPIO 16): Flashed\n2. Green Cooling LED (GPIO 12): Flashed\n3. Ambient Light (ADS1115 CH0): ${r.light}%\n4. Thermostat Dial (Rotary GPIO 20/21): ${r.temp}°C\n\nActive Server Port: ${d.active_port}`);
         fetchSpace();
       } else {
-        hwStatusFeedback.innerHTML = `<span style="color:#f87171;">❌ No server running on Pi ${ip}!</span>`;
-        alert(`❌ Could not connect to Raspberry Pi at ${ip}:${port}!\n\nThe Pi is reachable, but neither Atlas (port 6668) nor rpi_service_server (port 8080) is currently running.\n\nTo start the middleware on your Raspberry Pi, open a terminal on the Pi and run:\n\ncd ~/LAB4-Microservices-Architecture/PartTwo/AtlasThingMiddleware_RPI\n./Atlas\n\n(or for Lab 4 Part 1: cd ~/LAB4-Microservices-Architecture/PartOne/rpi_server && ./rpi_service_server RPi 8080)`);
+        hwStatusFeedback.innerHTML = `<span class="tone-negative">No server running on Pi ${ip}</span>`;
+        alert(`Could not connect to Raspberry Pi at ${ip}:${port}.\n\nThe Pi is reachable, but neither Atlas (port 6668) nor rpi_service_server (port 8080) is currently running.\n\nTo start the middleware on your Raspberry Pi, run:\n\ncd ~/LAB4-Microservices-Architecture/PartTwo/AtlasThingMiddleware_RPI\n./Atlas\n\n(or for Lab 4 Part 1: cd ~/LAB4-Microservices-Architecture/PartOne/rpi_server && ./rpi_service_server RPi 8080)`);
       }
     } catch (e) {
-      hwStatusFeedback.textContent = `❌ Network Error: ${e}`;
+      hwStatusFeedback.innerHTML = `<span class="tone-negative">Network Error: ${e}</span>`;
       hwStatusFeedback.className = "hw-feedback err";
     }
   });
@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const res = await resp.json();
     if (res.success) {
-      alert(`✓ Application '${appDef.name}' finalized and saved as .iot file!`);
+      alert(`Application '${appDef.name}' finalized and saved as .iot file.`);
       loadSavedApps();
     }
   });
@@ -265,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const things = spaceData.things || [];
     if (things.length === 0) {
-      grid.innerHTML = "<p style='color:#64748b; padding:20px;'>No Atlas Smart Things registered yet.</p>";
+      grid.innerHTML = "<p class='tone-muted' style='padding:20px;'>No Atlas Smart Things registered yet.</p>";
       return;
     }
 
@@ -277,39 +277,37 @@ document.addEventListener("DOMContentLoaded", () => {
       const entities = (spaceData.entities || []).filter(e => e.thing_id === thing.thing_id);
       const tags = entities.map(e => {
         const isSens = (e.entity_type || "").toLowerCase().includes("sensor");
-        return `<span class="entity-tag ${isSens ? 'sensor' : 'actuator'}">${isSens ? '👁' : '⚡'} ${e.name} <small>(${e.entity_type})</small></span>`;
+        return `<span class="entity-tag ${isSens ? 'sensor' : 'actuator'}">${e.name} <small>(${e.entity_type})</small></span>`;
       }).join("");
 
-      const roleTitle = isThing1 ? "Primary Controller (Light & Alarm Subsystem)" : "Secondary Controller (Climate & Cooling Subsystem)";
+      const roleTitle = isThing1 ? "Primary Controller (Light & Alarm)" : "Secondary Controller (Climate & Cooling)";
       const roleBadgeClass = isThing1 ? "" : "aux";
       const resSpanId = `ping_res_${thing.thing_id}`;
 
       card.innerHTML = `
         <div class="thing-card-header">
-          <img src="assets/rpi4.svg" alt="RPi" class="thing-avatar">
+          <img src="assets/rpi4.svg" alt="Raspberry Pi" class="thing-avatar">
           <div class="thing-title">
-            <h3>
-              ${thing.name}
-              <span class="thing-role-badge ${roleBadgeClass}">${roleTitle}</span>
-            </h3>
-            <div class="thing-id-tag">ATID: ${thing.thing_id} &bull; Space: ${thing.space_id || 'MySmartSpace'}</div>
+            <h3>${thing.name}</h3>
+            <span class="thing-role-badge ${roleBadgeClass}">${roleTitle}</span>
+            <div class="thing-id-tag mono">ATID: ${thing.thing_id} &middot; Space: ${thing.space_id || 'MySmartSpace'}</div>
           </div>
-          <span class="thing-status-pill"><span class="dot"></span> ONLINE</span>
+          <span class="thing-status-pill"><span class="dot"></span> Online</span>
         </div>
         <table class="thing-meta-table">
-          <tr><td>Target Address:</td><td><strong>${thing.ip}:${thing.port}</strong></td></tr>
-          <tr><td>Hardware Model:</td><td>${thing.model || 'Raspberry Pi 4 Model B (4GB)'}</td></tr>
-          <tr><td>Operating System:</td><td>${thing.os || 'Raspbian GNU/Linux 11 (bullseye)'}</td></tr>
-          <tr><td>Protocol / Language:</td><td>JSON / TCP (Port ${thing.port})</td></tr>
-          <tr><td>Owner / Vendor:</td><td>${thing.owner || 'iotpj'} / ${thing.vendor || 'RaspberryPiCo'}</td></tr>
+          <tr><td>Target Address</td><td class="mono"><strong>${thing.ip}:${thing.port}</strong></td></tr>
+          <tr><td>Hardware Model</td><td>${thing.model || 'Raspberry Pi 4 Model B (4GB)'}</td></tr>
+          <tr><td>Operating System</td><td>${thing.os || 'Raspbian GNU/Linux 11 (bullseye)'}</td></tr>
+          <tr><td>Protocol / Language</td><td class="mono">JSON / TCP (Port ${thing.port})</td></tr>
+          <tr><td>Owner / Vendor</td><td>${thing.owner || 'iotpj'} / ${thing.vendor || 'RaspberryPiCo'}</td></tr>
         </table>
-        <div>
-          <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:5px; font-weight:600;">Hosted Hardware Entities (${entities.length}):</div>
-          <div class="entities-tags">${tags || '<span style="color:#64748b;">No entities registered</span>'}</div>
+        <div class="thing-entities">
+          <div class="entities-heading">Hosted Hardware Entities (${entities.length})</div>
+          <div class="entities-tags">${tags || '<span class="tone-muted">No entities registered</span>'}</div>
         </div>
         <div class="thing-card-footer">
           <button class="btn btn-secondary btn-xs" onclick="pingThingNode('${thing.thing_id}', '${thing.ip}', ${thing.port}, '${resSpanId}')">
-            ⚡ Ping / Test Node
+            Ping / Test Node
           </button>
           <span id="${resSpanId}" class="thing-ping-res">Ready</span>
         </div>
@@ -342,7 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">No microservices match filter.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="tone-muted" style="text-align:center; padding:24px;">No microservices match this filter.</td></tr>';
       return;
     }
 
@@ -361,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
         outputType = "int (0 - 100%)";
         actionButtons = `
           <div class="func-action-box">
-            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Light')">👁 Read Light</button>
+            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Light')">Read Light</button>
             <span id="disp_val_Light" class="func-val-display">—</span>
           </div>`;
       } else if (s.name.includes("Temp")) {
@@ -371,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
         outputType = "int (15 - 45 °C)";
         actionButtons = `
           <div class="func-action-box">
-            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Temp')">🌡 Read Temp</button>
+            <button class="btn btn-primary btn-xs" onclick="callHwService('${s.name}', '()', 'disp_val_Temp')">Read Temp</button>
             <span id="disp_val_Temp" class="func-val-display">—</span>
           </div>`;
       } else if (s.name.includes("Alarm")) {
@@ -381,8 +379,8 @@ document.addEventListener("DOMContentLoaded", () => {
         outputType = "void";
         actionButtons = `
           <div class="func-action-box">
-            <button class="btn btn-danger btn-xs" onclick="callHwService('${s.name}', '(1)')">🔴 ON</button>
-            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">⚪ OFF</button>
+            <button class="btn btn-danger btn-xs" onclick="callHwService('${s.name}', '(1)')">On</button>
+            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">Off</button>
           </div>`;
       } else if (s.name.includes("Cooling")) {
         icon = "assets/actuator_fan.svg";
@@ -391,15 +389,15 @@ document.addEventListener("DOMContentLoaded", () => {
         outputType = "void";
         actionButtons = `
           <div class="func-action-box">
-            <button class="btn btn-success btn-xs" onclick="callHwService('${s.name}', '(1)')">🟢 ON</button>
-            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">⚪ OFF</button>
+            <button class="btn btn-outline-positive btn-xs" onclick="callHwService('${s.name}', '(1)')">On</button>
+            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '(0)')">Off</button>
           </div>`;
       } else {
         params = isSensor ? "None ()" : "state: int";
         outputType = isSensor ? "int" : "void";
         actionButtons = `
           <div class="func-action-box">
-            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '${isSensor ? '()' : '(1)'}')">⚡ Test</button>
+            <button class="btn btn-secondary btn-xs" onclick="callHwService('${s.name}', '${isSensor ? '()' : '(1)'}')">Test</button>
           </div>`;
       }
 
@@ -408,7 +406,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tr.innerHTML = `
         <td>
           <div class="func-name-col">
-            <img src="${icon}" alt="Icon" class="func-icon">
+            <img src="${icon}" alt="" class="func-icon">
             <strong>${s.name}</strong>
           </div>
         </td>
@@ -418,11 +416,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>
           <span class="func-type-badge ${isSensor ? 'sensor' : 'actuator'}">${isSensor ? 'Sensor' : 'Actuator'}</span>
         </td>
-        <td style="color:#cbd5e1; font-size:0.75rem;">${entityName}</td>
+        <td class="tone-muted" style="font-size:12px;">${entityName}</td>
         <td><code class="func-param-badge">${params}</code></td>
         <td><span class="func-output-badge">${outputType}</span></td>
-        <td style="color:#94a3b8; font-size:0.75rem; max-width:240px;">${s.description || 'Hardware microservice'}</td>
-        <td>${actionButtons}</td>
+        <td class="tone-muted" style="font-size:12px; max-width:240px;">${s.description || 'Hardware microservice'}</td>
+        <td class="col-right">${actionButtons}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -435,6 +433,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnSpace = document.getElementById("btnGraphSourceSpace");
     if (btnApp) btnApp.classList.toggle("active", src === "app");
     if (btnSpace) btnSpace.classList.toggle("active", src === "space");
+    window.resetGraphHighlight?.();
     renderRelationships();
   };
 
@@ -442,6 +441,14 @@ document.addEventListener("DOMContentLoaded", () => {
     renderRelationshipsGraph();
     renderRelationshipsCards();
   }
+  window.renderRelationships = renderRelationships;
+
+  document.getElementById("btnGraphSourceApp")?.addEventListener("click", () => window.setGraphSource("app"));
+  document.getElementById("btnGraphSourceSpace")?.addEventListener("click", () => window.setGraphSource("space"));
+  document.getElementById("btnResetGraph")?.addEventListener("click", () => {
+    window.resetGraphHighlight?.();
+    renderRelationships();
+  });
 
   function extractAppRelationships(appDef) {
     const steps = (appDef && Array.isArray(appDef.steps)) ? appDef.steps : [];
@@ -526,7 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
           type: "loop",
           from: lastService,
           to: firstService,
-          expr: `⟲ Loop (${appDef.loop_interval_sec || 3}s)`,
+          expr: `Loop (${appDef.loop_interval_sec || 3}s)`,
           description: `Application loop enabled: repeats execution every ${appDef.loop_interval_sec || 3} seconds.`
         });
       }
@@ -548,12 +555,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const subTitle = document.getElementById("lblGraphSubtitle");
     const subHeaderTitle = document.getElementById("lblRelDescriptorsTitle");
 
-    const nodeCoords = {
-      "Read_Light_Level":      { x: 60,  y: 70,  w: 250, h: 74, icon: "👁", title: "Read_Light_Level", sub: "LightSensor (ADS1115 CH0)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Read_Temperature":      { x: 60,  y: 250, w: 250, h: 74, icon: "🌡", title: "Read_Temperature", sub: "TempSensor (Rotary Dial GPIO 20/21)", thing: "MySmartThing02", color: "#a78bfa" },
-      "Set_Alarm_LED":         { x: 600, y: 70,  w: 250, h: 74, icon: "🔴", title: "Set_Alarm_LED", sub: "AlarmLED (Red LED GPIO 16)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Set_Cooling_Indicator": { x: 600, y: 250, w: 250, h: 74, icon: "🟢", title: "Set_Cooling_Indicator", sub: "CoolingLED (Green LED GPIO 12)", thing: "MySmartThing02", color: "#a78bfa" }
+    const baseCoords = {
+      "Read_Light_Level":      { x: 110, y: 70,  w: 256, h: 74, icon: "L", title: "Read_Light_Level", sub: "LightSensor (ADS1115 CH0)", thing: "MySmartThing01", color: "#1b6c80" },
+      "Read_Temperature":      { x: 110, y: 250, w: 256, h: 74, icon: "T", title: "Read_Temperature", sub: "TempSensor (Rotary Dial GPIO 20/21)", thing: "MySmartThing02", color: "#2f70bb" },
+      "Set_Alarm_LED":         { x: 590, y: 70,  w: 256, h: 74, icon: "A", title: "Set_Alarm_LED", sub: "AlarmLED (Red LED GPIO 16)", thing: "MySmartThing01", color: "#1b6c80" },
+      "Set_Cooling_Indicator": { x: 590, y: 250, w: 256, h: 74, icon: "C", title: "Set_Cooling_Indicator", sub: "CoolingLED (Green LED GPIO 12)", thing: "MySmartThing02", color: "#2f70bb" }
     };
+
+    const nodeCoords = { ...baseCoords };
+    const thingNames = Array.from(new Set((spaceData.services || []).map(s => s.thing_id)));
+    let dynSensorIdx = 0;
+    let dynActIdx = 0;
+    (spaceData.services || []).forEach(s => {
+      if (!nodeCoords[s.name]) {
+        const isSensor = (s.category || "").toLowerCase().includes("report") || s.name.startsWith("Read_");
+        const colX = isSensor ? 110 : 590;
+        const rowY = 70 + (isSensor ? dynSensorIdx++ : dynActIdx++) * 105;
+        const isPeer = thingNames.indexOf(s.thing_id) > 0;
+        nodeCoords[s.name] = {
+          x: colX,
+          y: Math.min(rowY, 310),
+          w: 256,
+          h: 74,
+          icon: isSensor ? "S" : "A",
+          title: s.name,
+          sub: `${s.entity_id || 'Entity'} (${s.category || 'Service'})`,
+          thing: s.thing_id || "MySmartThing01",
+          color: isPeer ? "#2f70bb" : "#1b6c80"
+        };
+      } else if (s.thing_id) {
+        nodeCoords[s.name].thing = s.thing_id;
+      }
+    });
 
     let edgesToRender = [];
     let usedServices = new Set();
@@ -564,69 +597,49 @@ document.addEventListener("DOMContentLoaded", () => {
       usedServices = extracted.usedServices;
       cachedAppEdges = edgesToRender;
 
-      if (mainTitle) mainTitle.innerHTML = `Application Dependency Graph: <span style="color:#38bdf8;">${appDef.name || 'Current App'}</span>`;
+      if (mainTitle) mainTitle.innerHTML = `Application Dependency Graph: <span class="tone-accent">${appDef.name || 'Current App'}</span>`;
       if (subTitle) subTitle.textContent = `Dynamically generated from ${appDef.steps ? appDef.steps.length : 0} execution steps in Apps & Editor ${appDef.loop ? `(Loop cycle: ${appDef.loop_interval_sec}s)` : ''}`;
       if (subHeaderTitle) subHeaderTitle.textContent = `Active Application Relationship Descriptors (${edgesToRender.length})`;
     } else {
-      // Space mode: use spaceData.relationships
+      // Space mode: dynamically map spaceData.relationships discovered from Atlas tweets
+      const spaceRels = spaceData.relationships || [];
       if (mainTitle) mainTitle.textContent = `Discovered Space Relationships & Dependency Graph`;
-      if (subTitle) subTitle.textContent = `Discovered from Atlas IoT-DDL tweets on Raspberry Pi nodes`;
-      if (subHeaderTitle) subHeaderTitle.textContent = `Discovered Space Relationship Descriptors (Atlas IoT-DDL)`;
-      usedServices = new Set(["Read_Light_Level", "Read_Temperature", "Set_Alarm_LED", "Set_Cooling_Indicator"]);
+      if (subTitle) subTitle.textContent = `Discovered from ${spaceRels.length} Atlas IoT-DDL Relationship tweets`;
+      if (subHeaderTitle) subHeaderTitle.textContent = `Discovered Space Relationship Descriptors (${spaceRels.length})`;
 
-      edgesToRender = [
-        {
-          id: "space_rel_1",
-          relName: "Rel_Darkness_Alert",
-          from: "Read_Light_Level", to: "Set_Alarm_LED",
-          type: "condition",
-          expr: "Light < 15%",
-          description: "When ambient light drops below 15%, trigger Alarm LED ON"
-        },
-        {
-          id: "space_rel_2",
-          relName: "Rel_Temp_Cooling_Order",
-          from: "Read_Temperature", to: "Set_Cooling_Indicator",
-          type: "order",
-          expr: "Order: After Read",
-          description: "Service Set_Cooling_Indicator may run only after Read_Temperature completes"
-        },
-        {
-          id: "space_rel_3",
-          relName: "Rel_Overheat_Cooling",
-          from: "Read_Temperature", to: "Set_Cooling_Indicator",
-          type: "condition",
-          expr: "Temp > 28°C",
-          description: "When temperature exceeds 28°C, activate Cooling Indicator LED"
-        },
-        {
-          id: "space_rel_4",
-          relName: "Rel_Cross_Thermal_Hazard",
-          from: "Read_Temperature", to: "Set_Alarm_LED",
-          type: "condition",
-          expr: "Temp > 35°C (Cross-RPi)",
-          description: "Thermal Hazard Alert: Service Set_Alarm_LED (RPi 1) runs if Read_Temperature (RPi 2) > 35 C"
-        }
-      ];
+      edgesToRender = spaceRels.map((rel, idx) => {
+        const isOrder = (rel.relation_type || "").toLowerCase().includes("order");
+        usedServices.add(rel.fs_name);
+        usedServices.add(rel.ss_name);
+        return {
+          id: rel.name || `space_rel_${idx + 1}`,
+          relName: rel.name || `Rel_${idx + 1}`,
+          from: rel.fs_name,
+          to: rel.ss_name,
+          type: isOrder ? "order" : "condition",
+          expr: isOrder ? "Order: Before / After" : (rel.category || "Conditional"),
+          description: rel.description || `${rel.fs_name} -> ${rel.ss_name}`
+        };
+      });
     }
 
     let svgContent = `
       <defs>
         <marker id="arrow-order" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1b6c80" />
         </marker>
         <marker id="arrow-condition" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f59e0b" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#a86f0c" />
         </marker>
         <marker id="arrow-sequential" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#a78bfa" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2f70bb" />
         </marker>
         <marker id="arrow-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1e7b4f" />
         </marker>
         <linearGradient id="nodeGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1e293b" />
-          <stop offset="100%" stop-color="#0f172a" />
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop offset="100%" stop-color="#f9fbfc" />
         </linearGradient>
       </defs>
     `;
@@ -634,11 +647,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Empty state check for application graph
     if (edgesToRender.length === 0 && currentGraphSource === "app") {
       svgContent += `
-        <g transform="translate(490, 200)" text-anchor="middle">
-          <circle cx="0" cy="-24" r="28" fill="#1e293b" stroke="#334155" />
-          <text x="0" y="-18" font-size="24" text-anchor="middle">🧩</text>
-          <text y="24" fill="#cbd5e1" font-size="16" font-weight="700">Canvas in Apps & Editor has no steps</text>
-          <text y="48" fill="#64748b" font-size="13">Switch to 'Apps & Editor' tab and add Type 1, 2, or 3 steps to dynamically generate relationships here.</text>
+        <g transform="translate(460, 210)" text-anchor="middle">
+          <rect x="-26" y="-50" width="52" height="52" rx="12" fill="#ffffff" stroke="#d5d8dc" stroke-width="1.5" />
+          <path d="M452 176h16M460 168v16" transform="translate(-460,-200)" stroke="#1b6c80" stroke-width="2" stroke-linecap="round"/>
+          <text y="24" fill="#131416" font-size="15" font-weight="600">Canvas in Apps &amp; Editor has no steps</text>
+          <text y="46" fill="#5d5f60" font-size="12.5">Switch to the Apps &amp; Editor tab and add Type 1, 2, or 3 steps to generate relationships.</text>
         </g>
       `;
       svg.innerHTML = svgContent;
@@ -667,19 +680,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const totalInPair = pairCounts[k];
       const offset = totalInPair > 1 ? (idxInPair - (totalInPair - 1) / 2) * 32 : 0;
 
-      let strokeColor = "#38bdf8";
+      let strokeColor = "#1b6c80";
       let markerId = "arrow-order";
       if (e.type === "order") {
-        strokeColor = "#38bdf8";
+        strokeColor = "#1b6c80";
         markerId = "arrow-order";
       } else if (e.type === "condition") {
-        strokeColor = "#f59e0b";
+        strokeColor = "#a86f0c";
         markerId = "arrow-condition";
       } else if (e.type === "sequential") {
-        strokeColor = "#a78bfa";
+        strokeColor = "#2f70bb";
         markerId = "arrow-sequential";
       } else if (e.type === "loop") {
-        strokeColor = "#10b981";
+        strokeColor = "#1e7b4f";
         markerId = "arrow-loop";
       }
 
@@ -765,15 +778,16 @@ document.addEventListener("DOMContentLoaded", () => {
       svgContent += `
         <g class="graph-node ${nodeClass}" id="node_${key}" data-node="${key}" onmouseenter="highlightGraphNode('${key}')" onmouseleave="resetGraphHighlight()">
           <rect class="graph-node-rect" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8" />
-          <text x="${n.x + 16}" y="${n.y + 42}" font-size="22">${n.icon}</text>
+          <rect x="${n.x + 12}" y="${n.y + 18}" width="28" height="28" rx="6" fill="${isThing2 ? '#ebf2fb' : '#e9f3f6'}" stroke="${isThing2 ? '#d0e0f5' : '#cbe2e8'}" stroke-width="1" />
+          <text x="${n.x + 26}" y="${n.y + 36}" font-size="12" font-weight="600" font-family="var(--code)" text-anchor="middle" fill="${isThing2 ? '#2f70bb' : '#1b6c80'}">${n.icon}</text>
           <text class="graph-node-title" x="${n.x + 50}" y="${n.y + 26}">${n.title}</text>
           <text class="graph-node-sub" x="${n.x + 50}" y="${n.y + 44}">${n.sub}</text>
-          <text class="graph-node-thing" x="${n.x + 50}" y="${n.y + 60}" fill="${isThing2 ? '#c4b5fd' : '#38bdf8'}">${n.thing}</text>
-          <text x="${n.x + n.w - 14}" y="${n.y + 22}" fill="${isUsed ? '#10b981' : '#64748b'}" font-size="${isUsed ? '11' : '10'}" font-weight="${isUsed ? 'bold' : 'normal'}" text-anchor="end">${isUsed ? '● In App' : 'Idle'}</text>
+          <text class="graph-node-thing" x="${n.x + 50}" y="${n.y + 60}" fill="${isThing2 ? '#2f70bb' : '#1b6c80'}">${n.thing}</text>
+          <text x="${n.x + n.w - 14}" y="${n.y + 22}" fill="${isUsed ? '#1e7b4f' : '#6b6b6b'}" font-size="${isUsed ? '10.5' : '10'}" font-weight="${isUsed ? '600' : '400'}" text-anchor="end">${isUsed ? 'Active' : 'Idle'}</text>
           
           <!-- Port dots -->
-          <circle cx="${n.x}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#38bdf8' : '#64748b'}" />
-          <circle cx="${n.x + n.w}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#38bdf8' : '#64748b'}" />
+          <circle cx="${n.x}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#1b6c80' : '#cdced1'}" stroke="#ffffff" stroke-width="1.5" />
+          <circle cx="${n.x + n.w}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#1b6c80' : '#cdced1'}" stroke="#ffffff" stroke-width="1.5" />
         </g>
       `;
     });
@@ -803,6 +817,14 @@ document.addEventListener("DOMContentLoaded", () => {
     showEdgeDetails(edgeId);
   };
 
+  function resolveServiceThing(serviceName) {
+    if (spaceData && Array.isArray(spaceData.services)) {
+      const found = spaceData.services.find(s => s.name === serviceName);
+      if (found && found.thing_id) return found.thing_id;
+    }
+    return serviceName.includes("Temp") || serviceName.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+  }
+
   window.showEdgeDetails = function(edgeId) {
     const bar = document.getElementById("graphRelDetails");
     if (!bar) return;
@@ -823,19 +845,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (!e) return;
 
-    const fromThing = e.from.includes("Temp") || e.from.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
-    const toThing = e.to.includes("Temp") || e.to.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+    const fromThing = resolveServiceThing(e.from);
+    const toThing = resolveServiceThing(e.to);
     const isCross = fromThing !== toThing;
 
     bar.style.display = "flex";
     bar.innerHTML = `
       <div>
         <span class="inspect-title">${e.relName}</span>
-        <span class="inspect-badge ${e.type}">${e.type.toUpperCase()}</span>
-        <span style="color:#cbd5e1; margin-left:12px;"><strong>${e.from}</strong> (${fromThing}) &rarr; <strong>${e.to}</strong> (${toThing})</span>
-        ${isCross ? '<span class="rel-card-cross" style="margin-left:8px;">⚡ Cross-RPi Distributed</span>' : ''}
+        <span class="inspect-badge ${e.type}">${e.type}</span>
+        <span style="color:#131416; margin-left:10px;"><strong>${e.from}</strong> <span class="tone-muted">(${fromThing})</span> &rarr; <strong>${e.to}</strong> <span class="tone-muted">(${toThing})</span></span>
+        ${isCross ? '<span class="rel-card-cross" style="margin-left:8px;">Cross-RPi Distributed</span>' : ''}
       </div>
-      <div style="color:#94a3b8; font-size:0.75rem;">
+      <div class="tone-muted" style="font-size:12px;">
         ${e.description}
       </div>
     `;
@@ -876,13 +898,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (currentGraphSource === "app") {
       if (cachedAppEdges.length === 0) {
-        grid.innerHTML = "<p style='color:#64748b; font-size:0.82rem; padding:10px;'>No relationship steps authored in the application yet. Click constructs on 'Apps & Editor' tab to add steps.</p>";
+        grid.innerHTML = "<p class='tone-muted' style='font-size:12.5px; padding:10px;'>No relationship steps authored in the application yet. Click constructs on the Apps &amp; Editor tab to add steps.</p>";
         return;
       }
 
       cachedAppEdges.forEach(e => {
-        const fromThing = e.from.includes("Temp") || e.from.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
-        const toThing = e.to.includes("Temp") || e.to.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+        const fromThing = resolveServiceThing(e.from);
+        const toThing = resolveServiceThing(e.to);
         const isCross = fromThing !== toThing;
 
         const card = document.createElement("div");
@@ -890,15 +912,15 @@ document.addEventListener("DOMContentLoaded", () => {
         card.innerHTML = `
           <div class="rel-card-top">
             <span class="rel-card-title">${e.relName}</span>
-            <span class="rel-card-tag ${e.type}">${e.type.toUpperCase()}</span>
+            <span class="rel-card-tag ${e.type}">${e.type}</span>
           </div>
-          <p style="color:#94a3b8; font-size:0.78rem;">${e.description}</p>
+          <p class="rel-card-desc">${e.description}</p>
           <div class="rel-arrow-display">
             ${e.from} &rarr; ${e.to}
           </div>
-          <div style="font-size:0.72rem; color:#64748b; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
-            <span>From: <code style="color:#38bdf8;">${fromThing}</code> &bull; To: <code style="color:#a78bfa;">${toThing}</code></span>
-            ${isCross ? '<span class="rel-card-cross">⚡ Cross-RPi</span>' : ''}
+          <div class="rel-card-footer">
+            <span>From: <code class="code-inline">${fromThing}</code> &bull; To: <code class="code-inline">${toThing}</code></span>
+            ${isCross ? '<span class="rel-card-cross">Cross-RPi</span>' : ''}
           </div>
         `;
 
@@ -910,12 +932,15 @@ document.addEventListener("DOMContentLoaded", () => {
       // Space mode
       const rels = spaceData.relationships || [];
       if (rels.length === 0) {
-        grid.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>No relationships discovered yet.</p>";
+        grid.innerHTML = "<p class='tone-muted' style='font-size:12.5px;'>No relationships discovered yet.</p>";
         return;
       }
 
       rels.forEach(rel => {
         const isOrder = rel.relation_type.toLowerCase().includes("order");
+        const fromThing = resolveServiceThing(rel.fs_name);
+        const toThing = resolveServiceThing(rel.ss_name);
+        const isCross = fromThing !== toThing;
         const card = document.createElement("div");
         card.className = `rel-card ${isOrder ? 'order' : 'condition'}`;
         card.innerHTML = `
@@ -923,14 +948,17 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="rel-card-title">${rel.name}</span>
             <span class="rel-card-tag ${isOrder ? 'order' : 'condition'}">${rel.relation_type}</span>
           </div>
-          <p style="color:#94a3b8; font-size:0.78rem;">${rel.description}</p>
+          <p class="rel-card-desc">${rel.description}</p>
           <div class="rel-arrow-display">
             ${rel.fs_name} &rarr; ${rel.ss_name}
           </div>
-          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">
-            Thing: <code style="color:#38bdf8;">${rel.thing_id}</code> &bull; Category: ${rel.category}
+          <div class="rel-card-footer">
+            <span>Thing: <code class="code-inline">${rel.thing_id}</code> &bull; Category: ${rel.category}</span>
+            ${isCross ? '<span class="rel-card-cross">Cross-RPi</span>' : ''}
           </div>
         `;
+        card.addEventListener("mouseenter", () => window.highlightEdge(rel.name));
+        card.addEventListener("mouseleave", () => window.resetGraphHighlight());
         grid.appendChild(card);
       });
     }
@@ -938,7 +966,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.pingThingNode = async (thingId, ip, port, resSpanId) => {
     const span = document.getElementById(resSpanId);
-    if (span) span.innerHTML = `<span style="color:#38bdf8;">Pinging...</span>`;
+    if (span) span.innerHTML = `<span class="tone-accent">Pinging...</span>`;
     try {
       const resp = await fetch("/api/target/test", {
         method: "POST",
@@ -948,13 +976,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await resp.json();
       if (span) {
         if (data.success) {
-          span.innerHTML = `<span style="color:#34d399;">✓ Online (${data.latency_ms}ms)</span>`;
+          span.innerHTML = `<span class="tone-positive">Online (${data.latency_ms} ms)</span>`;
         } else {
-          span.innerHTML = `<span style="color:#f87171;">✕ Failed (${data.error || 'unreachable'})</span>`;
+          span.innerHTML = `<span class="tone-negative">Failed (${data.error || 'unreachable'})</span>`;
         }
       }
     } catch (err) {
-      if (span) span.innerHTML = `<span style="color:#f87171;">✕ Network error</span>`;
+      if (span) span.innerHTML = `<span class="tone-negative">Network error</span>`;
     }
   };
 
@@ -971,10 +999,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const el = document.getElementById(displayId);
           if (el) el.textContent = `${res.Return} (${res.latency_ms}ms)`;
         } else {
-          alert(`✓ '${serviceName}' executed on hardware!\nResult: ${JSON.stringify(res.Return)}\nLatency: ${res.latency_ms}ms`);
+          alert(`Executed '${serviceName}' on hardware.\nResult: ${JSON.stringify(res.Return)}\nLatency: ${res.latency_ms}ms`);
         }
       } else {
-        alert(`❌ Error executing '${serviceName}' on breadboard:\n${res.error}\n\nCheck Raspberry Pi IP and connection.`);
+        alert(`Error executing '${serviceName}' on breadboard:\n${res.error}\n\nCheck Raspberry Pi IP and connection.`);
       }
     } catch (e) {
       alert(`Network error: ${e}`);
@@ -1016,10 +1044,10 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="app-compact-file">${app.filename}</span>
           </div>
           <div class="app-compact-btns">
-            <button class="btn btn-secondary btn-xs btn-edit" title="Load into Editor & Generate Graph">✎ Edit</button>
-            <button class="btn btn-primary btn-xs btn-run">▶ Run</button>
-            <button class="btn btn-secondary btn-xs btn-stop">■ Stop</button>
-            <button class="btn btn-danger btn-xs btn-del">✕</button>
+            <button class="btn btn-secondary btn-xs btn-edit" title="Load into Editor & Generate Graph">Edit</button>
+            <button class="btn btn-primary btn-xs btn-run">Run</button>
+            <button class="btn btn-secondary btn-xs btn-stop">Stop</button>
+            <button class="btn btn-danger btn-xs btn-del" title="Delete">&times;</button>
           </div>
         `;
 
@@ -1090,22 +1118,28 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!tbody) return;
 
       if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty">No applications currently active.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="empty">No applications currently active.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = list.map(item => `
+      tbody.innerHTML = list.map(item => {
+        const startLabel = typeof item.start_time === "number"
+          ? new Date(item.start_time * 1000).toLocaleTimeString([], { hour12: false })
+          : (item.start_time || "—");
+        return `
         <tr>
           <td><strong>${item.app_name}</strong></td>
           <td><span class="badge-status ${item.status.toLowerCase()}">${item.status}</span></td>
-          <td style="font-family:var(--code); color:#a7f3d0; font-size:0.7rem;">${item.last_result ? JSON.stringify(item.last_result) : '—'}</td>
-          <td>
+          <td class="mono" style="font-size:11.5px; color:var(--muted);">${startLabel}</td>
+          <td class="mono status-result-cell" title="${item.last_result ? JSON.stringify(item.last_result).replace(/"/g, '&quot;') : ''}">${item.last_result ? JSON.stringify(item.last_result) : '—'}</td>
+          <td class="col-right">
             ${item.can_stop 
-              ? `<button class="btn btn-danger btn-xs" onclick="stopApp('${item.app_name}')">■ Stop</button>`
-              : `<span style="color:#64748b; font-size:0.7rem;">Done</span>`}
+              ? `<button class="btn btn-danger btn-xs" onclick="stopApp('${item.app_name}')">Stop</button>`
+              : `<span class="tone-muted" style="font-size:11.5px;">Done</span>`}
           </td>
         </tr>
-      `).join("");
+      `;
+      }).join("");
     } catch (e) {}
   }
 

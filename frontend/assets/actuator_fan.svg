@@ -1,11 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <rect x="10" y="10" width="80" height="80" rx="12" fill="#0d3319" stroke="#43a047" stroke-width="2"/>
-  <circle cx="50" cy="46" r="22" fill="#1b5e20" stroke="#a5d6a7" stroke-width="2"/>
-  <circle cx="50" cy="46" r="6" fill="#ffffff"/>
-  <path d="M50 40 C55 30 65 30 62 42 C60 44 55 45 50 46" fill="#81c784"/>
-  <path d="M56 46 C66 51 66 61 54 58 C52 56 51 51 50 46" fill="#81c784"/>
-  <path d="M50 52 C45 62 35 62 38 50 C40 48 45 47 50 46" fill="#81c784"/>
-  <path d="M44 46 C34 41 34 31 46 34 C48 36 49 41 50 46" fill="#81c784"/>
-  <text x="50" y="84" fill="#a5d6a7" font-size="8" font-family="sans-serif" text-anchor="middle" font-weight="bold">Cooling Fan LED</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#dcfae5" stroke="#bce8ca" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="14" fill="#ffffff" stroke="#1e7b4f" stroke-width="1.8"/>
+  <path d="M32 28c2.8-5.5 8-5.5 6.8-.2-.6 2.3-3.6 3.5-6.8 4.2m4 0c5.5 2.8 5.5 8 .2 6.8-2.3-.6-3.5-3.6-4.2-6.8m0 4c-2.8 5.5-8 5.5-6.8.2.6-2.3 3.6-3.5 6.8-4.2m-4 0c-5.5-2.8-5.5-8-.2-6.8 2.3.6 3.5 3.6 4.2 6.8" fill="#1e7b4f" opacity="0.22" stroke="#1e7b4f" stroke-width="1.4" stroke-linejoin="round"/>
+  <circle cx="32" cy="32" r="2.8" fill="#1e7b4f"/>
 </svg>
-

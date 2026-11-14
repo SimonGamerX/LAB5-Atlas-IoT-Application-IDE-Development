@@ -77,7 +77,7 @@ class IoTAppEditor {
     this.availableServices.forEach(s => {
       const btn = document.createElement("button");
       btn.className = "palette-srv-btn";
-      btn.innerHTML = `+ ${s.name} <span style="font-size:0.65rem; color:${s.is_sensor ? '#34d399' : '#f87171'}">[${s.is_sensor ? 'Sensor' : 'Actuator'}]</span>`;
+      btn.innerHTML = `+ ${s.name} <span style="font-size:11px; color:${s.is_sensor ? '#1b6c80' : '#92400e'}">[${s.is_sensor ? 'Sensor' : 'Actuator'}]</span>`;
       btn.addEventListener("click", () => {
         this.addStep("Type1", s.name);
       });
@@ -194,7 +194,7 @@ class IoTAppEditor {
 
     if (this.steps.length === 0) {
       container.innerHTML = `
-        <div style="text-align:center; padding:30px; color:#64748b;">
+        <div style="text-align:center; padding:30px; color:#5d5f60;">
           <p>Canvas is empty.</p>
           <p style="font-size:0.8rem; margin-top:4px;">Click a construct button on the left to add your first execution step.</p>
         </div>
@@ -250,7 +250,7 @@ class IoTAppEditor {
             <span class="step-tag">${step.type}</span>
             <strong style="font-size:0.85rem; margin-left:6px;">Step #${step.step_index}</strong>
           </div>
-          <button class="btn-del-step" title="Remove Step">✕</button>
+          <button class="btn-del-step" title="Remove Step">&times;</button>
         </div>
         <div class="step-controls">
           ${inner}

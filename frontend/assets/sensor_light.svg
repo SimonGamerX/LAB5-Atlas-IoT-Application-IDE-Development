@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <rect x="10" y="10" width="80" height="80" rx="12" fill="#263238" stroke="#fdd835" stroke-width="2"/>
-  <circle cx="50" cy="45" r="18" fill="#fbc02d" stroke="#fff9c4" stroke-width="3"/>
-  <path d="M50 15 L50 22 M50 68 L50 75 M20 45 L27 45 M73 45 L80 45 M29 24 L34 29 M66 61 L71 66 M29 66 L34 61 M66 29 L71 24" stroke="#fdd835" stroke-width="2.5" stroke-linecap="round"/>
-  <text x="50" y="84" fill="#fff59d" font-size="8" font-family="sans-serif" text-anchor="middle" font-weight="bold">LDR Light Sensor</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#fffbeb" stroke="#f0dfb4" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="10" fill="#ffffff" stroke="#a86f0c" stroke-width="2"/>
+  <circle cx="32" cy="32" r="4" fill="#a86f0c"/>
+  <path d="M32 13v5M32 46v5M13 32h5M46 32h5M18.6 18.6l3.5 3.5M41.9 41.9l3.5 3.5M18.6 45.4l3.5-3.5M41.9 22.1l3.5-3.5" stroke="#a86f0c" stroke-width="1.8" stroke-linecap="round"/>
 </svg>
-
