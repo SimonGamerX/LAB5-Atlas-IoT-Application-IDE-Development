@@ -259,6 +259,16 @@ class SmartSpaceRegistry:
                 if not name or not thing_id:
                     return None
                 key = f"{thing_id}:{name}"
+                desc = tweet_data.get("Description", "")
+                cond_op = tweet_data.get("Condition Op", "")
+                cond_val = str(tweet_data.get("Condition Val", ""))
+                if not cond_op:
+                    for op in [">=", "<=", "==", "!=", ">", "<"]:
+                        if f" {op} " in desc:
+                            cond_op = op
+                            after = desc.split(f" {op} ")[1].strip().split()[0]
+                            cond_val = after.replace("%", "").replace("C", "").replace("°", "").strip()
+                            break
                 self.relationships[key] = AtlasRelationship(
                     name=name,
                     thing_id=thing_id,
@@ -266,20 +276,30 @@ class SmartSpaceRegistry:
                     owner=tweet_data.get("Owner", ""),
                     category=tweet_data.get("Category", "Cooperative"),
                     relation_type=tweet_data.get("Type", "Order-based"),
-                    description=tweet_data.get("Description", ""),
+                    description=desc,
                     fs_name=tweet_data.get("FS name", ""),
-                    ss_name=tweet_data.get("SS name", "")
+                    ss_name=tweet_data.get("SS name", ""),
+                    condition_op=cond_op,
+                    condition_val=cond_val
                 )
                 return f"Discovered Relationship: {name} on {thing_id}"
 
         return None
 
-    def update_target_hardware(self, target_ip: str, target_port: int):
-        """Points all registered Things to the physical Raspberry Pi IP and port."""
+    def update_target_hardware(self, target_ip: str, target_port: int, target_thing_id: str = ""):
+        """Points registered Things to the physical Raspberry Pi IP and port."""
         with self._lock:
-            for t in self.things.values():
-                t.ip = target_ip
-                t.port = int(target_port)
+            if target_thing_id and target_thing_id in self.things:
+                self.things[target_thing_id].ip = target_ip
+                self.things[target_thing_id].port = int(target_port)
+            elif "MySmartThing01" in self.things and target_ip != "127.0.0.1":
+                # Primary breadboard node is MySmartThing01
+                self.things["MySmartThing01"].ip = target_ip
+                self.things["MySmartThing01"].port = int(target_port)
+            else:
+                for t in self.things.values():
+                    t.ip = target_ip
+                    t.port = int(target_port)
 
     def get_space_snapshot(self) -> Dict[str, Any]:
         with self._lock:

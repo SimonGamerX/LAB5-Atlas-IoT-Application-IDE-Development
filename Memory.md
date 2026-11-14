@@ -23,6 +23,9 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
 ## 2. The 4 Professor Requirements & Implementation
 
 ### Requirement 1: Discovery of Available Atlas IoT Things
+- **Two Raspberry Pi Nodes Listed**:
+  - `SmartSpacePi-01` (`MySmartThing01`): Primary breadboard controller hosting ADS1115 LDR light sensor, rotary dial temperature sensor, Red Alert LED (GPIO 16), Green Cooling LED (GPIO 12).
+  - `SmartSpacePi-02` (`MySmartThing02`): Secondary Edge Gateway & Aux Environmental Node hosting DHT22 humidity sensor and audible alert buzzer (GPIO 18).
 - **Background Scanning Engine**: Implemented in `backend/tweet_listener.py`. Runs independent daemon threads listening on:
   - **UDP Multicast**: Group `232.1.1.1` on port `1235`.
   - **MQTT Public Broker**: `broker.hivemq.com:1883`, subscribed to topic `/Atlas/#`.
@@ -35,10 +38,11 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
 - **Startup "Freeze" Splash**: As suggested by the professor, the UI displays an animated scanning screen that blocks premature interactions until space metadata is learned (or user dismisses).
 
 ### Requirement 2: Display Space Meta Information & Unified Interface
-- **Unified Single-View Dashboard**: Replaced fragmented tab switching with a cohesive, single-screen layout:
-  - **Above**: Full-width Smart Space Functionalities & Parameters Table listing all microservices, their exact signatures, expected input parameters (e.g. `state: int (1=ON, 0=OFF)` vs `None ()`), output types, hardware entities, and direct breadboard triggers (`[🔴 ON]`, `[⚪ OFF]`, `[👁 Read Light]`, `[🌡 Read Temp]`).
-  - **Under**: The IoT Application IDE (Saved Apps sidebar, Visual Pipeline Canvas for Type 1, 2, 3 steps) and the relative Real-time Execution Console & Status Panel.
-- **Network Metadata**: Prominently shows the primary network address where the IDE is launched (`http://<IP>:<PORT>`).
+- **Tabs Architecture (No Numbers in Titles)**:
+  - `📟 Things`: Displays both Raspberry Pi 4B nodes side-by-side with complete network identity, communication language, hosted entities, and direct ping node test buttons.
+  - `⚡ Services & Functionalities`: Scaled table listing all microservices across both Things with Owning Thing tag, signatures, input parameters, output types, and direct breadboard triggers (`[🔴 ON]`, `[⚪ OFF]`, `[👁 Read Light]`, `[🌡 Read Temp]`, `[💧 Read Humidity]`, `[📢 ON]`).
+  - `🕸 Relationships`: Features an **interactive SVG Topological Dependency Graph** displaying directed cubic-bezier curves connecting First Service (FS) to Second Service (SS) across both RPis, with color-coded Order-based and Condition-based links and pill labels, plus detailed relationship descriptor cards.
+  - `🧩 Apps & Editor`: Visual workflow pipeline builder alongside the relative real-time execution console.
 
 ### Requirement 3: IoT Application Editor
 - **Hybrid Interface**: Visual Drag & Drop Canvas (`frontend/editor_canvas.js`) synced bi-directionally with a code/JSON editor.

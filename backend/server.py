@@ -171,6 +171,7 @@ class AtlasRequestHandler(SimpleHTTPRequestHandler):
         elif path == "/api/target/set":
             target_ip = data.get("ip", "127.0.0.1").strip()
             target_port = int(data.get("port", 6668))
+            thing_id = data.get("thing_id", "")
             is_simulator = bool(data.get("simulator", False))
             AtlasRequestHandler.simulator_enabled = is_simulator
             AtlasRequestHandler.target_ip = target_ip
@@ -181,12 +182,13 @@ class AtlasRequestHandler(SimpleHTTPRequestHandler):
                 self.registry.update_target_hardware("127.0.0.1", 6668)
             else:
                 self.mock_server.stop()
-                self.registry.update_target_hardware(target_ip, target_port)
+                self.registry.update_target_hardware(target_ip, target_port, thing_id)
 
             self._send_json({
                 "success": True,
                 "target_ip": target_ip if not is_simulator else "127.0.0.1",
                 "target_port": target_port if not is_simulator else 6668,
+                "thing_id": thing_id,
                 "simulator_active": is_simulator
             })
 
@@ -194,10 +196,12 @@ class AtlasRequestHandler(SimpleHTTPRequestHandler):
             from backend.app_runtime import send_atlas_service_call
             target_ip = data.get("ip", "127.0.0.1").strip()
             target_port = int(data.get("port", 6668))
-            res = send_atlas_service_call(target_ip, target_port, "MySmartThing01", "MySmartSpace", "Read_Light_Level", "()", timeout=3.0)
+            thing_id = data.get("thing_id", "MySmartThing01")
+            test_service = "Read_Light_Level" if thing_id == "MySmartThing01" else "Read_Humidity"
+            res = send_atlas_service_call(target_ip, target_port, thing_id, "MySmartSpace", test_service, "()", timeout=3.0)
             if not res.get("success") and target_port != 8080:
                 # Fallback check to port 8080 (Lab 4 Part One server)
-                res_8080 = send_atlas_service_call(target_ip, 8080, "MySmartThing01", "MySmartSpace", "Read_Light_Level", "()", timeout=2.0)
+                res_8080 = send_atlas_service_call(target_ip, 8080, thing_id, "MySmartSpace", test_service, "()", timeout=2.0)
                 if res_8080.get("success"):
                     res = res_8080
                     res["suggested_port"] = 8080

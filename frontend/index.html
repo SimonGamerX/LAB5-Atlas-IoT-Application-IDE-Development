@@ -62,16 +62,20 @@
   <!-- THE 4 REQUIRED TABS (Requirement 2) -->
   <nav class="nav-tabs">
     <button class="nav-tab active" data-tab="tab-things">
-      <span class="icon">📟</span> Things (<span id="countThings">0</span>)
+      <span class="icon">📟</span> Things
+      <span id="countThings" style="display:none;">0</span>
     </button>
     <button class="nav-tab" data-tab="tab-services">
-      <span class="icon">⚡</span> Services & Functionalities (<span id="countServices">0</span>)
+      <span class="icon">⚡</span> Services & Functionalities
+      <span id="countServices" style="display:none;">0</span>
     </button>
     <button class="nav-tab" data-tab="tab-relationships">
-      <span class="icon">🕸</span> Relationships (<span id="countRelationships">0</span>)
+      <span class="icon">🕸</span> Relationships
+      <span id="countRelationships" style="display:none;">0</span>
     </button>
     <button class="nav-tab" data-tab="tab-apps">
-      <span class="icon">🧩</span> Apps & Editor (<span id="countApps">0</span>)
+      <span class="icon">🧩</span> Apps & Editor
+      <span id="countApps" style="display:none;">0</span>
     </button>
   </nav>
 
@@ -79,13 +83,13 @@
   <main class="main-content">
 
     <!-- ========================================== -->
-    <!-- TAB 1: THINGS                              -->
+    <!-- TAB: THINGS                                -->
     <!-- ========================================== -->
     <section id="tab-things" class="tab-panel active">
       <div class="panel-header">
         <div>
-          <h2>Discovered Atlas Things</h2>
-          <p>Connected host nodes advertising their identity, communication language, and hosted entities.</p>
+          <h2>Discovered Atlas Smart Things (Group Raspberry Pis)</h2>
+          <p>Group Raspberry Pi 4B hardware nodes advertising identity, communication language, and hosted entities.</p>
         </div>
       </div>
       <div id="thingsGrid" class="cards-grid">
@@ -94,7 +98,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 2: SERVICES & FUNCTIONALITIES TABLE     -->
+    <!-- TAB: SERVICES & FUNCTIONALITIES TABLE      -->
     <!-- ========================================== -->
     <section id="tab-services" class="tab-panel">
       <div class="panel-header">
@@ -115,6 +119,7 @@
           <thead>
             <tr>
               <th>Functionality / Service</th>
+              <th>Owning Thing</th>
               <th>Category</th>
               <th>Hardware Entity</th>
               <th>Parameters (Inputs)</th>
@@ -131,18 +136,43 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 3: RELATIONSHIPS                       -->
+    <!-- TAB: RELATIONSHIPS & TOPOLOGICAL GRAPH     -->
     <!-- ========================================== -->
     <section id="tab-relationships" class="tab-panel">
       <div class="panel-header">
         <div>
-          <h2>Discovered Space Relationships</h2>
-          <p>Order-based dependencies (Service B after A) and Condition-based rules (Service B conditionally after A return value).</p>
+          <h2>Discovered Space Relationships & Dependency Graph</h2>
+          <p>Topological graph and descriptors of Order-based dependencies (B after A) and Condition-based rules (B conditionally after A return value).</p>
         </div>
         <div class="legend">
-          <span><span class="dot blue"></span> Order-based</span>
-          <span><span class="dot gold"></span> Condition-based</span>
+          <span><span class="legend-line blue"></span> Order-based</span>
+          <span><span class="legend-line gold"></span> Condition-based</span>
         </div>
+      </div>
+
+      <!-- Topological Graph Container -->
+      <div class="rel-graph-container">
+        <div class="rel-graph-header">
+          <div class="rel-graph-title">
+            <span class="graph-icon">🕸</span> Topological Dependency Graph
+            <span class="rel-graph-subtitle">Visual mapping of First Service (FS) &rarr; Second Service (SS) across Things</span>
+          </div>
+          <div class="rel-graph-controls">
+            <span class="rel-legend-item"><span class="legend-line blue"></span> Order-based</span>
+            <span class="rel-legend-item"><span class="legend-line gold"></span> Condition-based</span>
+            <button id="btnResetGraph" class="btn btn-secondary btn-xs" onclick="renderRelationships()">↺ Reset Graph</button>
+          </div>
+        </div>
+        <div id="relationshipsGraphWrapper" class="rel-graph-canvas-wrapper">
+          <svg id="relationshipsGraphSvg" viewBox="0 0 980 430" width="100%" height="430">
+            <!-- Rendered dynamically with SVG nodes & directed edges -->
+          </svg>
+        </div>
+        <div id="graphRelDetails" class="rel-graph-inspect-bar" style="display:none;"></div>
+      </div>
+
+      <div class="panel-subheader" style="margin: 24px 0 12px 0;">
+        <h3 style="font-size: 0.95rem; color: #cbd5e1; font-weight:600;">Discovered Relationship Descriptors</h3>
       </div>
       <div id="relationshipsGrid" class="relationships-grid">
         <!-- Rendered dynamically -->
@@ -150,7 +180,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 4: APPS, EDITOR & RELATIVE CONSOLE     -->
+    <!-- TAB: APPS, EDITOR & RELATIVE CONSOLE       -->
     <!-- ========================================== -->
     <section id="tab-apps" class="tab-panel">
       <div class="panel-header">

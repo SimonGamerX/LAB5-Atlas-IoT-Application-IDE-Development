@@ -23,24 +23,32 @@ http://localhost:5050
 
 ---
 
-## Tabs Overview (4 Core Tabs)
+## Tabs Overview
 
-### 1. 📟 Things
-- Shows connected Raspberry Pi 4B hardware info, IP:port, OS, owner, and hosted entities.
+### 📟 Things
+- **Two Raspberry Pis Listed**:
+  - **SmartSpacePi-01 (Primary Breadboard Controller)**: Hosts ADS1115 LDR light sensor, rotary dial temperature sensor, Red Alert LED (GPIO 16), and Green Cooling LED (GPIO 12).
+  - **SmartSpacePi-02 (Secondary Edge Gateway & Aux Node)**: Hosts indoor humidity sensor (DHT22) and secondary audible alert buzzer (GPIO 18).
+- Complete metadata (ATID, IP:Port, Model, OS, Owner, Vendor, hosted entities) with live node ping test buttons.
 
-### 2. ⚡ Services & Functionalities
-- **Scaled Functionalities & Parameters Table**: Lists all microservices with signatures, categories, hardware entities, expected input parameters (e.g. `state: int (1=ON, 0=OFF)` vs `None ()`), output types, and descriptions.
-- **Direct Breadboard Triggers**:
+### ⚡ Services & Functionalities
+- **Scaled Functionalities & Parameters Table**: Lists microservices for each Thing with Owning Thing tag, method signatures, categories, hardware entities, input parameters, and output types.
+- **Direct Breadboard Action Controls**:
   - `[👁 Read Light]` (shows live light level percentage from ADS1115 LDR)
   - `[🌡 Read Temp]` (shows live temperature dial in °C from Rotary Encoder)
+  - `[💧 Read Humidity]` (shows live humidity percentage)
   - `[🔴 ON]` / `[⚪ OFF]` (controls physical Red Alarm LED on GPIO 16)
   - `[🟢 ON]` / `[⚪ OFF]` (controls physical Green Cooling LED on GPIO 12)
-- Filter by All, Sensor-type, or Actuator-type.
+  - `[📢 ON]` / `[⚪ OFF]` (controls secondary alert buzzer)
 
-### 3. 🕸 Relationships
-- Discovered space relationships (Order-based dependencies and Condition-based rules) with source $\rightarrow$ target mapping and categories.
+### 🕸 Relationships
+- **Topological Dependency Graph**: Interactive SVG visualization with directed cubic-bezier curves, glowing links, and pill expression labels connecting First Service (FS) to Second Service (SS) across both RPis:
+  - 🟦 **Order-based dependencies** (e.g. `Read_Temperature` $\rightarrow$ `Set_Cooling_Indicator`, `Set_Alarm_LED` $\rightarrow$ `Set_Buzzer_Alert`)
+  - 🟨 **Condition-based rules** (e.g. `Light < 15%`, `Temp > 28°C`, `Humidity > 75% RH`)
+- Interactive hover effects highlighting linked nodes and displaying live inspection details.
+- Relationship Descriptors Catalog cards underneath the graph.
 
-### 4. 🧩 Apps & Editor
+### 🧩 Apps & Editor
 - **Left Sidebar**: Saved applications (`CircadianComfortGuard`, `Lab4DemoApp`), + New App, Upload, and construct buttons (`+ Type 1`, `+ Type 2`, `+ Type 3`).
 - **Center Canvas**: Interactive visual workflow pipeline builder with looping toggle and save/finalize to `.iot`.
 - **Right Console**: Relative real-time execution status table (`ACTIVE`, `STOPPED`, `COMPLETED`) and live execution trace logs.
