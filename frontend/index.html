@@ -9,7 +9,7 @@
 </head>
 <body>
 
-  <!-- HEADER: BRAND & HARDWARE CONNECTION -->
+  <!-- HEADER: BRAND & SPACE META -->
   <header class="main-header">
     <div class="brand">
       <img src="assets/app_icon.svg" alt="Logo" class="brand-logo">
@@ -31,7 +31,7 @@
       </div>
       <div class="meta-box">
         <span class="meta-label">STATUS:</span>
-        <span id="metaDiscovery" class="meta-status online">● Discovery Active</span>
+        <span id="metaDiscovery" class="meta-status online">● Listening to Tweets</span>
       </div>
     </div>
   </header>
@@ -39,7 +39,7 @@
   <!-- HARDWARE CONNECTION BAR (Real Raspberry Pi Breadboard vs Simulator) -->
   <div class="hardware-bar">
     <div class="hw-group">
-      <span class="hw-label">Hardware Mode:</span>
+      <span class="hw-label">Target Hardware:</span>
       <select id="selTargetMode" class="hw-select">
         <option value="real">🟢 Real Raspberry Pi (Physical Breadboard)</option>
         <option value="sim">🟡 Mock Simulator (Offline / Testing)</option>
@@ -49,7 +49,7 @@
       <span class="hw-label">RPi IP:</span>
       <input type="text" id="inputRpiIp" class="hw-input" placeholder="e.g. 192.168.1.150" value="127.0.0.1">
       <span class="hw-label">Port:</span>
-      <select id="selRpiPort" class="hw-select">
+      <select id="selRpiPort" class="hw-select" style="width:170px;">
         <option value="6668">6668 (Atlas Middleware)</option>
         <option value="8080">8080 (Lab 4 Part 1 HTTP)</option>
       </select>
@@ -59,18 +59,57 @@
     <div id="hwStatusFeedback" class="hw-feedback"></div>
   </div>
 
-  <!-- MAIN UNIFIED DASHBOARD -->
-  <main class="dashboard-container">
+  <!-- THE 4 REQUIRED TABS (Requirement 2) -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="tab-things">
+      <span class="icon">📟</span> Things (<span id="countThings">0</span>)
+    </button>
+    <button class="nav-tab" data-tab="tab-services">
+      <span class="icon">⚡</span> Services & Functionalities (<span id="countServices">0</span>)
+    </button>
+    <button class="nav-tab" data-tab="tab-relationships">
+      <span class="icon">🕸</span> Relationships (<span id="countRelationships">0</span>)
+    </button>
+    <button class="nav-tab" data-tab="tab-apps">
+      <span class="icon">🧩</span> Apps & Editor (<span id="countApps">0</span>)
+    </button>
+  </nav>
 
-    <!-- ============================================================== -->
-    <!-- SECTION ABOVE: SMART SPACE FUNCTIONALITIES & PARAMETERS         -->
-    <!-- ============================================================== -->
-    <section class="section-above">
-      <div class="section-title-bar">
-        <h2>Smart Space Functionalities & Microservices</h2>
-        <span class="section-badge">Signatures, Expected Parameters & Live Triggers</span>
+  <!-- TAB PANELS CONTAINER -->
+  <main class="main-content">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: THINGS                              -->
+    <!-- ========================================== -->
+    <section id="tab-things" class="tab-panel active">
+      <div class="panel-header">
+        <div>
+          <h2>Discovered Atlas Things</h2>
+          <p>Connected host nodes advertising their identity, communication language, and hosted entities.</p>
+        </div>
+      </div>
+      <div id="thingsGrid" class="cards-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: SERVICES & FUNCTIONALITIES TABLE     -->
+    <!-- ========================================== -->
+    <section id="tab-services" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Offered Microservices & Functionalities</h2>
+          <p>Complete listing of services with signatures, expected parameters, return types, and direct breadboard controls.</p>
+        </div>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="all">All (<span id="numAllServices">0</span>)</button>
+          <button class="filter-btn" data-filter="sensor">Sensor-type (<span id="numSensors">0</span>)</button>
+          <button class="filter-btn" data-filter="actuator">Actuator-type (<span id="numActuators">0</span>)</button>
+        </div>
       </div>
 
+      <!-- Scaled Functionalities & Parameters Table -->
       <div class="func-full-card">
         <table class="functionalities-table">
           <thead>
@@ -85,27 +124,48 @@
             </tr>
           </thead>
           <tbody id="functionalitiesTableBody">
-            <!-- Microservices with parameters rendered dynamically -->
+            <!-- Rendered dynamically with live test buttons -->
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- ============================================================== -->
-    <!-- SECTION UNDER: IOT APPLICATION IDE & RELATIVE CONSOLE          -->
-    <!-- ============================================================== -->
-    <section class="section-under">
-      <div class="section-title-bar">
-        <h2>IoT Application IDE & Execution Console</h2>
-        <span class="section-badge">Compose, Save (.iot) & Run Workflows</span>
+    <!-- ========================================== -->
+    <!-- TAB 3: RELATIONSHIPS                       -->
+    <!-- ========================================== -->
+    <section id="tab-relationships" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Discovered Space Relationships</h2>
+          <p>Order-based dependencies (Service B after A) and Condition-based rules (Service B conditionally after A return value).</p>
+        </div>
+        <div class="legend">
+          <span><span class="dot blue"></span> Order-based</span>
+          <span><span class="dot gold"></span> Condition-based</span>
+        </div>
+      </div>
+      <div id="relationshipsGrid" class="relationships-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: APPS, EDITOR & RELATIVE CONSOLE     -->
+    <!-- ========================================== -->
+    <section id="tab-apps" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h2>IoT Application Editor & Manager</h2>
+          <p>Select services, arrange them with relationships into an app, save (.iot), and execute with real-time console monitoring.</p>
+        </div>
       </div>
 
       <div class="ide-main-layout">
         
-        <!-- Left: App Manager & Construct Buttons -->
+        <!-- Left: App Manager & Step Palette -->
         <aside class="ide-sidebar">
           
-          <!-- Saved Apps -->
+          <!-- Saved Apps Block -->
           <div class="sidebar-block">
             <div class="block-header">
               <h4>Saved Applications</h4>
@@ -129,7 +189,7 @@
             <div class="construct-btns-vertical">
               <button class="btn-construct" data-type="Type1">
                 <strong>+ Type 1: Sequential Step</strong>
-                <span>Direct service invocation</span>
+                <span>Run service directly</span>
               </button>
               <button class="btn-construct" data-type="Type2">
                 <strong>+ Type 2: Order-based Step</strong>
@@ -171,18 +231,18 @@
             <!-- Dynamic step cards -->
           </div>
 
-          <!-- JSON view container -->
+          <!-- JSON View Container -->
           <div id="canvasJsonContainer" class="json-scroll-area" style="display:none;">
             <textarea id="appJsonEditor" spellcheck="false"></textarea>
           </div>
         </div>
 
-        <!-- Right/Under: Relative Execution Console & Status Panel -->
+        <!-- Right: Relative Execution Console & Status Monitor -->
         <div class="ide-console-box">
           <div class="console-top-bar">
             <div class="console-title">
               <span class="pulse-dot" id="statusPulseDot"></span>
-              <strong>Active Execution Status</strong>
+              <strong>Execution Status</strong>
               <span class="active-count">(<span id="activeAppCount">0</span> active)</span>
             </div>
             <button id="btnClearLogs" class="btn-link">Clear Console</button>

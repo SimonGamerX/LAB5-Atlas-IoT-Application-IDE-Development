@@ -1,11 +1,33 @@
 /**
- * Atlas IoT Application IDE - Unified Dashboard Controller
+ * Atlas IoT Application IDE - 4 Tabs Controller
  * Course: B8019 Programming the Internet of Things
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   let spaceData = null;
   let appEditor = new IoTAppEditor();
+  let currentFilter = "all";
+
+  // Tab switching
+  document.querySelectorAll(".nav-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      const target = document.getElementById(tab.dataset.tab);
+      if (target) target.classList.add("active");
+    });
+  });
+
+  // Services filter buttons
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      renderFunctionalitiesTable();
+    });
+  });
 
   // Hardware Target Controls
   const selTargetMode = document.getElementById("selTargetMode");
@@ -144,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Upload App
+  // Upload App File
   const fileInput = document.getElementById("fileAppUpload");
   document.getElementById("btnUploadAppFile")?.addEventListener("click", () => fileInput?.click());
   fileInput?.addEventListener("change", (e) => {
@@ -169,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // -------------------------------------------------------------
-  // Data Fetching & Rendering (Section Above)
+  // Data Fetching & Rendering
   // -------------------------------------------------------------
   async function fetchSpace() {
     try {
@@ -187,25 +209,82 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      // Update Tab Badges
+      document.getElementById("countThings").textContent = spaceData.counts.things;
+      document.getElementById("countServices").textContent = spaceData.counts.services;
+      document.getElementById("countRelationships").textContent = spaceData.counts.relationships;
+
+      renderThings();
       renderFunctionalitiesTable();
+      renderRelationships();
       appEditor.setServices(spaceData.services);
     } catch (e) {
       console.warn("Could not fetch space data:", e);
     }
   }
 
+  // TAB 1: Render Things
+  function renderThings() {
+    const grid = document.getElementById("thingsGrid");
+    if (!grid || !spaceData) return;
+    grid.innerHTML = "";
+
+    spaceData.things.forEach(thing => {
+      const card = document.createElement("div");
+      card.className = "thing-card";
+
+      const entities = spaceData.entities.filter(e => e.thing_id === thing.thing_id);
+      const tags = entities.map(e => `<span class="entity-tag">${e.name} (${e.entity_type})</span>`).join("");
+
+      card.innerHTML = `
+        <div class="thing-card-header">
+          <img src="assets/rpi4.svg" alt="RPi" class="thing-avatar">
+          <div class="thing-title">
+            <h3>${thing.name}</h3>
+            <div class="thing-id-tag">ATID: ${thing.thing_id}</div>
+          </div>
+        </div>
+        <table class="thing-meta-table">
+          <tr><td>Target Address:</td><td>${thing.ip}:${thing.port}</td></tr>
+          <tr><td>Operating System:</td><td>${thing.os || 'Raspbian'}</td></tr>
+          <tr><td>Hardware Model:</td><td>${thing.model || 'Raspberry Pi 4B'}</td></tr>
+          <tr><td>Owner / Vendor:</td><td>${thing.owner || 'iotpj'} / ${thing.vendor || 'RaspberryPiCo'}</td></tr>
+        </table>
+        <div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">Hosted Entities:</div>
+          <div class="entities-tags">${tags || 'None'}</div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // TAB 2: Render Functionalities Table
   function renderFunctionalitiesTable() {
     const tbody = document.getElementById("functionalitiesTableBody");
     if (!tbody || !spaceData) return;
     tbody.innerHTML = "";
 
-    const services = spaceData.services || [];
-    if (services.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No microservices discovered.</td></tr>';
+    const allSrv = spaceData.services || [];
+    const sensors = allSrv.filter(s => s.is_sensor);
+    const actuators = allSrv.filter(s => s.is_actuator);
+
+    document.getElementById("numAllServices").textContent = allSrv.length;
+    document.getElementById("numSensors").textContent = sensors.length;
+    document.getElementById("numActuators").textContent = actuators.length;
+
+    const filtered = allSrv.filter(s => {
+      if (currentFilter === "sensor") return s.is_sensor;
+      if (currentFilter === "actuator") return s.is_actuator;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No microservices match filter.</td></tr>';
       return;
     }
 
-    services.forEach(s => {
+    filtered.forEach(s => {
       const isSensor = s.is_sensor;
       let icon = "assets/app_icon.svg";
       let entityName = s.entity_id || "Hardware";
@@ -283,6 +362,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // TAB 3: Render Relationships
+  function renderRelationships() {
+    const grid = document.getElementById("relationshipsGrid");
+    if (!grid || !spaceData) return;
+    grid.innerHTML = "";
+
+    if (!spaceData.relationships || spaceData.relationships.length === 0) {
+      grid.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>No relationships discovered yet.</p>";
+      return;
+    }
+
+    spaceData.relationships.forEach(rel => {
+      const isOrder = rel.relation_type.toLowerCase().includes("order");
+      const card = document.createElement("div");
+      card.className = `rel-card ${isOrder ? 'order' : 'condition'}`;
+      card.innerHTML = `
+        <div class="rel-card-top">
+          <span class="rel-card-title">${rel.name}</span>
+          <span class="rel-card-tag ${isOrder ? 'order' : 'condition'}">${rel.relation_type}</span>
+        </div>
+        <p style="color:#94a3b8; font-size:0.78rem;">${rel.description}</p>
+        <div class="rel-arrow-display">
+          ${rel.fs_name} &rarr; ${rel.ss_name}
+        </div>
+        <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">
+          Thing: ${rel.thing_id} &bull; Category: ${rel.category}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
   window.callHwService = async (serviceName, inputs = "()", displayId = null) => {
     try {
       const resp = await fetch("/api/service/call", {
@@ -307,13 +418,14 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // -------------------------------------------------------------
-  // Data Fetching & Rendering (Section Under: IDE & Console)
+  // TAB 4: Load Saved Apps, Update Status & Logs
   // -------------------------------------------------------------
   async function loadSavedApps() {
     try {
       const r = await fetch("/api/apps");
       const data = await r.json();
       document.getElementById("labelWorkingDir").textContent = data.working_dir;
+      document.getElementById("countApps").textContent = data.apps.length;
 
       const container = document.getElementById("savedAppsList");
       if (!container) return;
@@ -444,7 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {}
   }
 
-  // Initial calls
+  // Initial fetch
   fetchSpace();
   loadSavedApps();
   updateStatusPanel();

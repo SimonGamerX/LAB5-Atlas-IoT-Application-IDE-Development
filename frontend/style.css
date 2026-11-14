@@ -1,4 +1,4 @@
-/* Atlas IoT IDE - Unified Single-View Dashboard */
+/* Atlas IoT IDE - 4 Tabs with Scaled Functionalities & Parameters Table */
 :root {
   --bg-dark: #0a0f1d;
   --bg-panel: #111827;
@@ -89,6 +89,37 @@ body {
 .hw-feedback.ok { color: #34d399; }
 .hw-feedback.err { color: #f87171; }
 
+/* 4 REQUIRED NAVIGATION TABS */
+.nav-tabs {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 0 24px;
+  gap: 4px;
+}
+
+.nav-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 12px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.nav-tab:hover { color: #fff; background: rgba(255,255,255,0.03); }
+.nav-tab.active {
+  color: #fff;
+  border-bottom-color: var(--blue);
+  background: var(--bg-card);
+}
+
 /* BUTTONS */
 .btn {
   padding: 6px 14px;
@@ -111,39 +142,82 @@ body {
 .btn-xs { padding: 2px 8px; font-size: 0.7rem; }
 .btn-link { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 0.75rem; }
 
-/* MAIN CONTAINER */
-.dashboard-container {
+/* MAIN CONTENT CONTAINER */
+.main-content {
   flex: 1;
-  padding: 16px 24px 24px 24px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
 }
 
-.section-title-bar {
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-.section-title-bar h2 {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  letter-spacing: 0.3px;
+.panel-header h2 { font-size: 1.15rem; font-weight: 700; color: #f1f5f9; }
+.panel-header p { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ============================================================== */
+/* TAB 1: THINGS CARDS                                            */
+/* ============================================================== */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
 }
-.section-badge {
-  font-size: 0.7rem;
+
+.thing-card {
   background: var(--bg-card);
-  color: var(--text-muted);
-  padding: 2px 8px;
-  border-radius: 4px;
   border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.thing-card-header { display: flex; align-items: center; gap: 12px; }
+.thing-avatar { width: 44px; height: 44px; background: var(--bg-dark); border-radius: 8px; padding: 4px; }
+.thing-title h3 { font-size: 1rem; }
+.thing-id-tag { font-size: 0.72rem; color: var(--gold); font-family: var(--code); }
+
+.thing-meta-table { font-size: 0.78rem; width: 100%; border-collapse: collapse; }
+.thing-meta-table td { padding: 4px 0; }
+.thing-meta-table td:first-child { color: var(--text-muted); width: 36%; }
+.thing-meta-table td:last-child { color: #fff; font-family: var(--code); }
+
+.entities-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.entity-tag {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  color: #cbd5e1;
 }
 
 /* ============================================================== */
-/* SECTION ABOVE: SMART SPACE FUNCTIONALITIES TABLE               */
+/* TAB 2: SERVICES & FUNCTIONALITIES TABLE                        */
 /* ============================================================== */
+.filter-buttons { display: flex; gap: 8px; }
+.filter-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
 .func-full-card {
   background: var(--bg-panel);
   border: 1px solid var(--border);
@@ -165,7 +239,7 @@ body {
 }
 
 .functionalities-table th {
-  padding: 10px 14px;
+  padding: 12px 14px;
   font-weight: 600;
   color: #cbd5e1;
   font-size: 0.75rem;
@@ -174,7 +248,7 @@ body {
 }
 
 .functionalities-table td {
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -185,7 +259,7 @@ body {
 
 .func-name-col {
   font-weight: 700;
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   color: #fff;
   display: flex;
   align-items: center;
@@ -193,8 +267,8 @@ body {
 }
 
 .func-icon {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 4px;
   background: var(--bg-dark);
   padding: 2px;
@@ -205,7 +279,7 @@ body {
   font-size: 0.74rem;
   background: var(--bg-dark);
   color: #fde047;
-  padding: 3px 7px;
+  padding: 3px 8px;
   border-radius: 4px;
   border: 1px solid var(--border);
   display: inline-block;
@@ -224,7 +298,7 @@ body {
 
 .func-output-badge {
   font-family: var(--code);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: #38bdf8;
 }
 
@@ -247,13 +321,57 @@ body {
 }
 
 /* ============================================================== */
-/* SECTION UNDER: IOT APPLICATION IDE & RELATIVE CONSOLE          */
+/* TAB 3: RELATIONSHIPS GRID                                      */
+/* ============================================================== */
+.legend { display: flex; gap: 14px; font-size: 0.82rem; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+.dot.blue { background: var(--blue); }
+.dot.gold { background: var(--gold); }
+
+.relationships-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.rel-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rel-card.order { border-left: 4px solid var(--blue); }
+.rel-card.condition { border-left: 4px solid var(--gold); }
+
+.rel-card-top { display: flex; justify-content: space-between; align-items: center; }
+.rel-card-title { font-weight: 700; color: #fff; font-size: 0.88rem; }
+.rel-card-tag { font-size: 0.68rem; font-weight: bold; }
+.rel-card-tag.order { color: #60a5fa; }
+.rel-card-tag.condition { color: #f59e0b; }
+
+.rel-arrow-display {
+  font-family: var(--code);
+  color: #38bdf8;
+  font-weight: 600;
+  margin-top: 4px;
+  background: var(--bg-dark);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* ============================================================== */
+/* TAB 4: APPS, EDITOR & RELATIVE CONSOLE                         */
 /* ============================================================== */
 .ide-main-layout {
   display: grid;
-  grid-template-columns: 240px 1.2fr 1fr;
+  grid-template-columns: 240px 1.25fr 1fr;
   gap: 16px;
-  min-height: 480px;
+  min-height: 520px;
 }
 
 /* Sidebar */
@@ -299,7 +417,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 180px;
+  max-height: 190px;
   overflow-y: auto;
 }
 

@@ -23,18 +23,24 @@ http://localhost:5050
 
 ---
 
-## Unified Dashboard Layout (Single-View)
+## Tabs Overview (4 Core Tabs)
 
-Everything is visible and controllable on one screen:
+### 1. 📟 Things
+- Shows connected Raspberry Pi 4B hardware info, IP:port, OS, owner, and hosted entities.
 
-### 1. ABOVE: Smart Space Functionalities & Parameters
-Full-width table listing all hardware functionalities with their exact signatures, expected parameters, and live breadboard action buttons:
-- **`Read_Light_Level`**: Sensor (ADS1115 CH0) | Inputs: `None ()` | Output: `int (0-100%)` | `[👁 Read Light]`
-- **`Read_Temperature`**: Sensor (Rotary Encoder) | Inputs: `None ()` | Output: `int (15-45 °C)` | `[🌡 Read Temp]`
-- **`Set_Alarm_LED`**: Actuator (Red LED GPIO 16) | Inputs: `state: int (1=ON, 0=OFF)` | Output: `void` | `[🔴 ON]` `[⚪ OFF]`
-- **`Set_Cooling_Indicator`**: Actuator (Green LED GPIO 12) | Inputs: `state: int (1=ON, 0=OFF)` | Output: `void` | `[🟢 ON]` `[⚪ OFF]`
+### 2. ⚡ Services & Functionalities
+- **Scaled Functionalities & Parameters Table**: Lists all microservices with signatures, categories, hardware entities, expected input parameters (e.g. `state: int (1=ON, 0=OFF)` vs `None ()`), output types, and descriptions.
+- **Direct Breadboard Triggers**:
+  - `[👁 Read Light]` (shows live light level percentage from ADS1115 LDR)
+  - `[🌡 Read Temp]` (shows live temperature dial in °C from Rotary Encoder)
+  - `[🔴 ON]` / `[⚪ OFF]` (controls physical Red Alarm LED on GPIO 16)
+  - `[🟢 ON]` / `[⚪ OFF]` (controls physical Green Cooling LED on GPIO 12)
+- Filter by All, Sensor-type, or Actuator-type.
 
-### 2. UNDER: IoT Application IDE & Relative Console
+### 3. 🕸 Relationships
+- Discovered space relationships (Order-based dependencies and Condition-based rules) with source $\rightarrow$ target mapping and categories.
+
+### 4. 🧩 Apps & Editor
 - **Left Sidebar**: Saved applications (`CircadianComfortGuard`, `Lab4DemoApp`), + New App, Upload, and construct buttons (`+ Type 1`, `+ Type 2`, `+ Type 3`).
-- **Center Canvas**: Interactive visual workflow pipeline builder to arrange steps, configure thresholds, and save to `.iot`.
-- **Right Console**: Real-time monitor displaying active application status (`ACTIVE`, `STOPPED`, `COMPLETED`), start times, and live execution trace logs.
+- **Center Canvas**: Interactive visual workflow pipeline builder with looping toggle and save/finalize to `.iot`.
+- **Right Console**: Relative real-time execution status table (`ACTIVE`, `STOPPED`, `COMPLETED`) and live execution trace logs.
