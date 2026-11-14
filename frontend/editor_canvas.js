@@ -111,6 +111,20 @@ class IoTAppEditor {
       newStep.inputs_b = "(1)";
       newStep.else_service = s2;
       newStep.else_inputs = "(0)";
+    } else if (type === "Type4") {
+      newStep.interaction_mode = "input";
+      newStep.var_name = "target_temp";
+      newStep.prompt = "Enter temperature threshold (C):";
+      newStep.default_value = "27";
+      newStep.message = "Circadian Guardian alert: comfort threshold triggered";
+    } else if (type === "Type5") {
+      newStep.expression = `(Read_Light_Level < 20 AND Read_Temperature > 30)`;
+      newStep.service_b = "Set_Alarm_LED";
+      newStep.inputs_b = "(1)";
+      newStep.else_service = "";
+      newStep.else_inputs = "(0)";
+    } else if (type === "Group") {
+      newStep.steps = [];
     }
 
     this.steps.push(newStep);
@@ -187,6 +201,10 @@ class IoTAppEditor {
     } catch (e) {}
   }
 
+  _escAttr(val) {
+    return String(val ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
   render() {
     const container = document.getElementById("canvasStepsList");
     if (!container) return;
@@ -194,19 +212,26 @@ class IoTAppEditor {
 
     if (this.steps.length === 0) {
       container.innerHTML = `
-        <div style="text-align:center; padding:30px; color:var(--muted);">
-          <p>Canvas is empty.</p>
-          <p style="font-size:0.8rem; margin-top:4px;">Click a construct button on the left to add your first execution step.</p>
+        <div class="canvas-empty-prompt">
+          <p class="empty-title">Workspace Ready — Upload or Create New App</p>
+          <p class="empty-sub">Double-click a saved <code>.iot</code> app on the left, click <strong>Upload .iot</strong>, or choose a construct (Type 1–5) from the Palette.</p>
         </div>
       `;
       return;
     }
 
+    const groupSummary = document.createElement("div");
+    groupSummary.className = "step-group-delimiter";
+    const stepLabels = this.steps.map(s => `${s.type}#${s.step_index}`).join(" ; ");
+    groupSummary.innerHTML = `<span class="delim-brace">{</span> <span class="mono">${this._escAttr(stepLabels)}</span> <span class="delim-brace">}</span>`;
+    container.appendChild(groupSummary);
+
     const options = this.availableServices.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
+    const optionalOptions = `<option value="">(None)</option>` + options;
 
     this.steps.forEach((step, idx) => {
       const card = document.createElement("div");
-      card.className = "step-card";
+      card.className = `step-card step-${String(step.type || "Type1").toLowerCase()}`;
 
       let inner = "";
       if (step.type === "Type1") {
@@ -214,17 +239,16 @@ class IoTAppEditor {
           <span>Run:</span>
           <select data-key="service">${options}</select>
           <span>with args:</span>
-          <input type="text" data-key="inputs" value="${step.inputs || '()'}" style="width:70px;">
+          <input type="text" data-key="inputs" value="${this._escAttr(step.inputs || '()')}" style="width:74px;">
         `;
       } else if (step.type === "Type2") {
         inner = `
           <span>If</span>
           <select data-key="service_a">${options}</select>
-          <span>succeeds &rarr; Then Run:</span>
+          <span>succeeds &rarr; Run:</span>
           <select data-key="service_b">${options}</select>
-          <span>(args:</span>
-          <input type="text" data-key="inputs_b" value="${step.inputs_b || '(1)'}" style="width:50px;">
-          <span>)</span>
+          <span>args:</span>
+          <input type="text" data-key="inputs_b" value="${this._escAttr(step.inputs_b || '(1)')}" style="width:54px;">
         `;
       } else if (step.type === "Type3") {
         inner = `
@@ -234,20 +258,69 @@ class IoTAppEditor {
           <select data-key="operator">
             <option value=">">&gt;</option>
             <option value="<">&lt;</option>
+            <option value=">=">&gt;=</option>
+            <option value="<=">&lt;=</option>
             <option value="==">==</option>
             <option value="!=">!=</option>
           </select>
-          <input type="number" data-key="threshold" value="${step.threshold ?? 28}" style="width:50px;">
+          <input type="text" data-key="threshold" value="${this._escAttr(step.threshold ?? 28)}" style="width:66px;" title="Number or {var_name}">
           <span>&rarr; Run:</span>
           <select data-key="service_b">${options}</select>
-          <input type="text" data-key="inputs_b" value="${step.inputs_b || '(1)'}" style="width:45px;">
+          <input type="text" data-key="inputs_b" value="${this._escAttr(step.inputs_b || '(1)')}" style="width:48px;">
+        `;
+      } else if (step.type === "Type4") {
+        const mode = (step.interaction_mode || "input").toLowerCase();
+        if (mode === "input" || mode === "prompt") {
+          inner = `
+            <select data-key="interaction_mode" style="width:92px;">
+              <option value="input">User Input</option>
+              <option value="output">User Output</option>
+            </select>
+            <span>Var:</span>
+            <input type="text" data-key="var_name" value="${this._escAttr(step.var_name || 'user_input')}" style="width:96px;" class="mono">
+            <span>Prompt:</span>
+            <input type="text" data-key="prompt" value="${this._escAttr(step.prompt || 'Enter parameter:')}" style="flex:1; min-width:160px;">
+            <span>Default:</span>
+            <input type="text" data-key="default_value" value="${this._escAttr(step.default_value || '')}" style="width:58px;">
+          `;
+        } else {
+          inner = `
+            <select data-key="interaction_mode" style="width:96px;">
+              <option value="input">User Input</option>
+              <option value="output">User Output</option>
+            </select>
+            <span>Display:</span>
+            <input type="text" data-key="message" value="${this._escAttr(step.message || 'Operation status alert')}" style="flex:1; min-width:220px;" title="Supports {var_name} or {ServiceName}">
+          `;
+        }
+      } else if (step.type === "Type5") {
+        const chipTokens = ["(", ")", "AND", "OR", ">", "<", ...this.availableServices.map(s => s.name)];
+        const chipsHtml = chipTokens.map(tok => `<button type="button" class="logic-chip mono" data-insert="${this._escAttr(tok)}">${tok}</button>`).join("");
+        inner = `
+          <div class="type5-grid">
+            <div class="type5-expr-row">
+              <span class="mono" style="font-weight:600; color:var(--chart-3);">IF</span>
+              <input type="text" data-key="expression" class="type5-expr-input mono" value="${this._escAttr(step.expression || '(Read_Light_Level < 20 AND Read_Temperature > 30)')}" placeholder="(ServiceA < 20 AND (ServiceB > 30 OR ...))">
+            </div>
+            <div class="type5-chips-row">
+              ${chipsHtml}
+            </div>
+            <div class="type5-action-row">
+              <span>THEN &rarr;</span>
+              <select data-key="service_b">${options}</select>
+              <input type="text" data-key="inputs_b" value="${this._escAttr(step.inputs_b || '(1)')}" style="width:52px;">
+              <span style="margin-left:6px;">ELSE &rarr;</span>
+              <select data-key="else_service">${optionalOptions}</select>
+              <input type="text" data-key="else_inputs" value="${this._escAttr(step.else_inputs || '(0)')}" style="width:52px;">
+            </div>
+          </div>
         `;
       }
 
       card.innerHTML = `
         <div class="step-top">
           <div>
-            <span class="step-tag">${step.type}</span>
+            <span class="step-tag tag-${String(step.type || 'Type1').toLowerCase()}">${step.type}</span>
             <strong style="font-size:0.85rem; margin-left:6px;">Step #${step.step_index}</strong>
           </div>
           <button class="btn-del-step" title="Remove Step">&times;</button>
@@ -263,11 +336,30 @@ class IoTAppEditor {
         if (key && step[key] !== undefined) el.value = step[key];
         const updateVal = (e) => {
           step[key] = e.target.value;
+          if (key === "interaction_mode") {
+            this.render();
+          }
           this.syncToJson();
           this.notifyChange();
         };
         el.addEventListener("change", updateVal);
         el.addEventListener("input", updateVal);
+      });
+
+      // Logic expression quick-insert chips (Type 5)
+      card.querySelectorAll(".logic-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          const inp = card.querySelector(".type5-expr-input");
+          if (!inp) return;
+          const tok = chip.dataset.insert || "";
+          const cur = inp.value;
+          const sep = cur && !cur.endsWith(" ") && !cur.endsWith("(") && tok !== ")" ? " " : "";
+          inp.value = cur + sep + tok + (tok === "(" ? "" : " ");
+          step.expression = inp.value.trim();
+          this.syncToJson();
+          this.notifyChange();
+          inp.focus();
+        });
       });
 
       card.querySelector(".btn-del-step")?.addEventListener("click", () => {

@@ -242,6 +242,41 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("traceBody").innerHTML = '<div class="log-welcome">Console cleared.</div>';
   });
 
+  // Working Directory Switcher (Req 4: Changeable Atlas working directory)
+  const btnChangeWorkDir = document.getElementById("btnChangeWorkDir");
+  const workDirEditorRow = document.getElementById("workDirEditorRow");
+  const inputWorkingDir = document.getElementById("inputWorkingDir");
+  const btnApplyWorkDir = document.getElementById("btnApplyWorkDir");
+
+  btnChangeWorkDir?.addEventListener("click", () => {
+    if (!workDirEditorRow) return;
+    const isHidden = workDirEditorRow.style.display === "none";
+    workDirEditorRow.style.display = isHidden ? "flex" : "none";
+    if (isHidden && inputWorkingDir) {
+      inputWorkingDir.value = document.getElementById("labelWorkingDir")?.textContent.trim() || "";
+      inputWorkingDir.focus();
+    }
+  });
+
+  btnApplyWorkDir?.addEventListener("click", async () => {
+    const newDir = inputWorkingDir?.value.trim();
+    if (!newDir) return;
+    try {
+      const resp = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ working_dir: newDir })
+      });
+      const d = await resp.json();
+      if (d.working_dir) {
+        workDirEditorRow.style.display = "none";
+        loadSavedApps();
+      }
+    } catch (e) {
+      alert(`Unable to change working directory: ${e}`);
+    }
+  });
+
   // -------------------------------------------------------------
   // Data Fetching & Rendering
   // -------------------------------------------------------------
@@ -537,13 +572,73 @@ document.addEventListener("DOMContentLoaded", () => {
             description: `Conditional rule: When '${step.service_a}' ${op} ${thresh}, trigger '${step.service_b}'.`
           });
         }
+      } else if (step.type === "Type4") {
+        used.add("User_Interaction");
+        const mode = (step.interaction_mode || "output").toLowerCase();
+        const prevStep = idx > 0 ? steps[idx - 1] : null;
+        const nextStep = idx < steps.length - 1 ? steps[idx + 1] : null;
+        const srcSrv = prevStep ? (prevStep.service_b || prevStep.service_a || prevStep.service) : null;
+        const dstSrv = nextStep ? (nextStep.service_a || nextStep.service) : null;
+        if (srcSrv && mode === "output") {
+          used.add(srcSrv);
+          edges.push({
+            id: `app_step_${step.step_index}_io`,
+            relName: `Step #${step.step_index}: User Output`,
+            stepIndex: step.step_index,
+            type: "interaction",
+            from: srcSrv,
+            to: "User_Interaction",
+            expr: "Type 4: Notify",
+            description: `Displays user notification: ${step.message || ""}`
+          });
+        } else if (dstSrv) {
+          used.add(dstSrv);
+          edges.push({
+            id: `app_step_${step.step_index}_io`,
+            relName: `Step #${step.step_index}: ${mode === "input" ? "User Input" : "User Output"}`,
+            stepIndex: step.step_index,
+            type: "interaction",
+            from: "User_Interaction",
+            to: dstSrv,
+            expr: mode === "input" ? `Input {${step.var_name || "var"}}` : "Type 4: Notify",
+            description: mode === "input"
+              ? `Prompts operator '${step.prompt || ""}' into {${step.var_name || "var"}} before ${dstSrv}.`
+              : `User notification: ${step.message || ""}`
+          });
+        }
+      } else if (step.type === "Type5") {
+        const exprText = String(step.expression || "");
+        const knownNames = (spaceData && Array.isArray(spaceData.services))
+          ? spaceData.services.map(s => s.name)
+          : ["Read_Light_Level", "Read_Temperature"];
+        const matchedSources = knownNames.filter(name => exprText.includes(name));
+        const hasOr = /\bOR\b|\|\|/i.test(exprText);
+        const gateTag = hasOr ? "OR Logic" : "AND Logic";
+        const targetActuator = step.service_b || "Set_Alarm_LED";
+        used.add(targetActuator);
+
+        matchedSources.forEach((srcName, sIdx) => {
+          used.add(srcName);
+          edges.push({
+            id: `app_step_${step.step_index}_logic_${sIdx}`,
+            relName: `Step #${step.step_index}: Type 5 Compound Logic (${gateTag})`,
+            stepIndex: step.step_index,
+            type: "logic",
+            from: srcName,
+            to: targetActuator,
+            expr: gateTag,
+            description: `Evaluates '${exprText}' -> triggers '${targetActuator}'.`
+          });
+        });
       } else if (step.type === "Type1") {
         // Sequential step
         if (step.service) {
           used.add(step.service);
           if (idx < steps.length - 1) {
             const nextStep = steps[idx + 1];
-            const nextService = nextStep.type === "Type1" ? nextStep.service : (nextStep.service_a || nextStep.service);
+            const nextService = nextStep.type === "Type1"
+              ? nextStep.service
+              : (nextStep.type === "Type4" ? "User_Interaction" : (nextStep.service_a || nextStep.service));
             if (nextService && nextService !== step.service) {
               used.add(nextService);
               edges.push({
@@ -565,9 +660,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Loop cycle return edge
     if (appDef && appDef.loop && steps.length > 0) {
       const lastStep = steps[steps.length - 1];
-      const lastService = lastStep.type === "Type1" ? lastStep.service : (lastStep.service_b || lastStep.service_a);
+      const lastService = lastStep.type === "Type1"
+        ? lastStep.service
+        : (lastStep.service_b || lastStep.service_a || "User_Interaction");
       const firstStep = steps[0];
-      const firstService = firstStep.type === "Type1" ? firstStep.service : (firstStep.service_a || firstStep.service);
+      const firstService = firstStep.type === "Type1"
+        ? firstStep.service
+        : (firstStep.service_a || "User_Interaction");
       if (lastService && firstService) {
         used.add(lastService);
         used.add(firstService);
@@ -642,6 +741,20 @@ document.addEventListener("DOMContentLoaded", () => {
       usedServices = extracted.usedServices;
       cachedAppEdges = edgesToRender;
 
+      if (usedServices.has("User_Interaction")) {
+        nodeCoords["User_Interaction"] = {
+          x: 378,
+          y: 158,
+          w: 200,
+          h: 68,
+          icon: "IO",
+          title: "User_Interaction",
+          sub: "Console Prompt / Alert",
+          thing: "Atlas IDE",
+          color: "#5b6472"
+        };
+      }
+
       if (mainTitle) mainTitle.innerHTML = `Application Dependency Graph: <span class="tone-accent">${appDef.name || 'Current App'}</span>`;
       if (subTitle) subTitle.textContent = `Dynamically generated from ${appDef.steps ? appDef.steps.length : 0} execution steps in Apps & Editor ${appDef.loop ? `(Loop cycle: ${appDef.loop_interval_sec}s)` : ''}`;
       if (subHeaderTitle) subHeaderTitle.textContent = `Active Application Relationship Descriptors (${edgesToRender.length})`;
@@ -679,6 +792,12 @@ document.addEventListener("DOMContentLoaded", () => {
         <marker id="arrow-sequential" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--chart-2)" />
         </marker>
+        <marker id="arrow-logic" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--chart-4)" />
+        </marker>
+        <marker id="arrow-interaction" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--muted)" />
+        </marker>
         <marker id="arrow-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--positive)" />
         </marker>
@@ -696,7 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <rect x="-26" y="-50" width="52" height="52" rx="12" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5" />
           <path d="M452 176h16M460 168v16" transform="translate(-460,-200)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
           <text y="24" fill="var(--text)" font-size="15" font-weight="600">Canvas in Apps &amp; Editor has no steps</text>
-          <text y="46" fill="var(--muted)" font-size="12.5">Switch to the Apps &amp; Editor tab and add Type 1, 2, or 3 steps to generate relationships.</text>
+          <text y="46" fill="var(--muted)" font-size="12.5">Switch to the Apps &amp; Editor tab and add Type 1–5 steps to generate relationships.</text>
         </g>
       `;
       svg.innerHTML = svgContent;
@@ -736,6 +855,12 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (e.type === "sequential") {
         strokeColor = "var(--chart-2)";
         markerId = "arrow-sequential";
+      } else if (e.type === "logic") {
+        strokeColor = "var(--chart-4)";
+        markerId = "arrow-logic";
+      } else if (e.type === "interaction") {
+        strokeColor = "var(--muted)";
+        markerId = "arrow-interaction";
       } else if (e.type === "loop") {
         strokeColor = "var(--positive)";
         markerId = "arrow-loop";
@@ -1096,16 +1221,23 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `;
 
-        const loadThisApp = () => {
-          appEditor.loadApp(app);
+        card.title = "Double-click or click Edit to load into Editor";
+
+        const selectThisCard = () => {
           document.querySelectorAll(".app-compact-card").forEach(c => c.classList.remove("selected-app"));
           card.classList.add("selected-app");
+        };
+
+        const loadThisApp = () => {
+          appEditor.loadApp(app);
+          selectThisCard();
           if (currentGraphSource === "app") {
             renderRelationships();
           }
         };
 
-        card.addEventListener("click", loadThisApp);
+        card.addEventListener("click", selectThisCard);
+        card.addEventListener("dblclick", loadThisApp);
         card.querySelector(".btn-edit")?.addEventListener("click", (e) => {
           e.stopPropagation();
           loadThisApp();
@@ -1147,6 +1279,65 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {}
   }
 
+  let renderedPromptKey = null;
+
+  function renderConsoleInteractionBar(list) {
+    const bar = document.getElementById("consoleInteractionBar");
+    if (!bar) return;
+
+    const waitingApp = list.find(item => item.pending_prompt);
+    if (waitingApp && waitingApp.pending_prompt) {
+      const p = waitingApp.pending_prompt;
+      if (renderedPromptKey === p.prompt_id) return;
+      renderedPromptKey = p.prompt_id;
+
+      bar.style.display = "flex";
+      bar.className = "console-interaction-bar is-prompt";
+      bar.innerHTML = `
+        <div class="cib-label">
+          <span class="cib-tag">Type 4 Input</span>
+          <strong>${waitingApp.app_name}</strong>: ${p.prompt}
+        </div>
+        <div class="cib-controls">
+          <input type="text" id="cibPromptInput" class="cib-input mono" value="${String(p.default_value || '').replace(/"/g, '&quot;')}" placeholder="Value for {${p.var_name}}">
+          <button type="button" id="cibPromptSubmit" class="btn btn-primary btn-xs">Submit Input</button>
+        </div>
+      `;
+      const submitFn = async () => {
+        const val = document.getElementById("cibPromptInput")?.value ?? "";
+        await fetch("/api/apps/respond", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: waitingApp.app_name, value: val })
+        });
+        renderedPromptKey = null;
+        bar.style.display = "none";
+        updateStatusPanel();
+      };
+      document.getElementById("cibPromptSubmit")?.addEventListener("click", submitFn);
+      document.getElementById("cibPromptInput")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitFn();
+      });
+      return;
+    }
+
+    renderedPromptKey = null;
+    const outputApp = list.find(item => item.last_output && item.last_output.message);
+    if (outputApp) {
+      bar.style.display = "flex";
+      bar.className = "console-interaction-bar is-output";
+      bar.innerHTML = `
+        <div class="cib-label">
+          <span class="cib-tag out">Type 4 Output</span>
+          <strong>${outputApp.app_name}</strong> [${outputApp.last_output.time_str}]: ${outputApp.last_output.message}
+        </div>
+      `;
+      return;
+    }
+
+    bar.style.display = "none";
+  }
+
   async function updateStatusPanel() {
     try {
       const r = await fetch("/api/status");
@@ -1158,6 +1349,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const dot = document.getElementById("statusPulseDot");
       if (activeCount > 0) dot.classList.add("active");
       else dot.classList.remove("active");
+
+      renderConsoleInteractionBar(list);
 
       const tbody = document.getElementById("statusTableBody");
       if (!tbody) return;

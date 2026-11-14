@@ -1,0 +1,36 @@
+{
+  "name": "InteractiveThresholdGuardian",
+  "version": "1.0",
+  "author": "iotpj Group",
+  "description": "Module 13 Type 4 + Type 5 Demo: Prompts operator for target temperature threshold, evaluates compound AND logic across both Pis, and notifies the user.",
+  "loop": false,
+  "loop_interval_sec": 3.0,
+  "steps": [
+    {
+      "step_index": 1,
+      "type": "Type4",
+      "interaction_mode": "input",
+      "var_name": "target_temp",
+      "prompt": "Enter custom thermal alert threshold (C):",
+      "default_value": "25",
+      "description": "Prompt operator for comfort threshold"
+    },
+    {
+      "step_index": 2,
+      "type": "Type5",
+      "expression": "(Read_Temperature > {target_temp} AND (Read_Light_Level < 40 OR Read_Temperature >= 32))",
+      "service_b": "Set_Cooling_Indicator",
+      "inputs_b": "(1)",
+      "else_service": "Set_Cooling_Indicator",
+      "else_inputs": "(0)",
+      "description": "Compound AND/OR check using interactive threshold"
+    },
+    {
+      "step_index": 3,
+      "type": "Type4",
+      "interaction_mode": "output",
+      "message": "Threshold check complete using target={target_temp}C (Temp={Read_Temperature}C, Light={Read_Light_Level}%)",
+      "description": "Display summary notification to user"
+    }
+  ]
+}

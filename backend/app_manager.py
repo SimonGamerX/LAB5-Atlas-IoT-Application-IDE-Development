@@ -153,6 +153,16 @@ class AppManager:
             "status": ctx.status
         }
 
+    def respond_to_app(self, app_name: str, value: str) -> Dict[str, Any]:
+        """Module 13 Type 4: Deliver runtime user input to an awaiting active app."""
+        if app_name not in self.active_contexts:
+            return {"success": False, "error": f"App '{app_name}' is not active."}
+        ctx = self.active_contexts[app_name]
+        ok = ctx.submit_user_input(value)
+        if not ok:
+            return {"success": False, "error": f"App '{app_name}' is not awaiting input."}
+        return {"success": True, "app_name": app_name, "value": value}
+
     def delete_app(self, app_name: str) -> Dict[str, Any]:
         """Requirement 4: DELETE app from IDE and local storage."""
         # If running, stop first
@@ -191,7 +201,9 @@ class AppManager:
                 "status": ctx.status,  # "Active", "Stopped", "Completed"
                 "start_time": start_str,
                 "last_result": ctx.last_results,
-                "can_stop": ctx.status == "Active"
+                "can_stop": ctx.status == "Active",
+                "pending_prompt": ctx.pending_prompt if ctx.status == "Active" else None,
+                "last_output": ctx.last_output
             })
         return summary
 

@@ -49,6 +49,16 @@
       "service_a": "Read_Temperature",
       "service_b": "Set_Cooling_Indicator",
       "inputs_b": "(1)"
+    },
+    {
+      "step_index": 6,
+      "type": "Type5",
+      "description": "Compound Nocturnal Hazard: Dark room AND elevated temperature triggers Alarm LED",
+      "expression": "(Read_Light_Level < 15 AND Read_Temperature > 32)",
+      "service_b": "Set_Alarm_LED",
+      "inputs_b": "(1)",
+      "else_service": "",
+      "else_inputs": "(0)"
     }
   ]
 }

@@ -183,6 +183,8 @@
                 <span class="leg-item"><i class="leg-dot leg-seq"></i> Sequential</span>
                 <span class="leg-item"><i class="leg-dot leg-order"></i> Order</span>
                 <span class="leg-item"><i class="leg-dot leg-cond"></i> Condition</span>
+                <span class="leg-item"><i class="leg-dot leg-logic"></i> Logic (AND/OR)</span>
+                <span class="leg-item"><i class="leg-dot leg-io"></i> Interaction</span>
                 <span class="leg-item"><i class="leg-dot leg-loop"></i> Loop</span>
                 <button id="btnResetGraph" class="btn btn-secondary btn-xs">Refresh</button>
               </div>
@@ -227,9 +229,16 @@
               <!-- Column 1: App Directory & Constructs -->
               <aside class="ide-sidebar">
                 <div class="panel-box">
-                  <div class="panel-header">
+                  <div class="panel-header workdir-header">
                     <span>Working Directory</span>
-                    <span id="labelWorkingDir" class="workdir-path mono" title="Working directory path">...</span>
+                    <div class="workdir-meta-actions">
+                      <button id="btnChangeWorkDir" class="btn btn-secondary btn-xxs" type="button" title="Change Atlas working directory">Change</button>
+                    </div>
+                  </div>
+                  <div id="labelWorkingDir" class="workdir-path mono" title="Double-click an app below to load into editor">...</div>
+                  <div id="workDirEditorRow" class="workdir-editor-row" style="display: none;">
+                    <input type="text" id="inputWorkingDir" class="workdir-input mono" placeholder="/path/to/apps_storage">
+                    <button id="btnApplyWorkDir" class="btn btn-primary btn-xxs" type="button">Set</button>
                   </div>
                   <div id="savedAppsList" class="saved-apps-list">
                     <!-- App files populated by JS -->
@@ -250,6 +259,14 @@
                     <button class="btn-construct" data-type="Type3">
                       <strong>Type 3 — Condition</strong>
                       <span>If sensor &gt; thr then actuator</span>
+                    </button>
+                    <button class="btn-construct" data-type="Type4">
+                      <strong>Type 4 — Interaction</strong>
+                      <span>User input prompt / output alert</span>
+                    </button>
+                    <button class="btn-construct" data-type="Type5">
+                      <strong>Type 5 — Compound Logic</strong>
+                      <span>Boolean AND / OR with ( ) gates</span>
                     </button>
                   </div>
                 </div>
@@ -299,6 +316,9 @@
                 </div>
                 <button id="btnClearLogs" class="btn btn-secondary btn-xs">Clear logs</button>
               </div>
+
+              <!-- Module 13 Type 4 Interactive Prompt / Output Banner -->
+              <div id="consoleInteractionBar" class="console-interaction-bar" style="display: none;"></div>
 
               <div class="console-split">
                 <!-- Status Table (with Start Time aligned to Prof. Helal spec) -->

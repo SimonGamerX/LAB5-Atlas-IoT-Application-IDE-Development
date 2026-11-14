@@ -168,6 +168,12 @@ class AtlasRequestHandler(SimpleHTTPRequestHandler):
             res = self.app_manager.stop_app(name)
             self._send_json(res)
 
+        elif path == "/api/apps/respond":
+            name = data.get("name", "")
+            value = data.get("value", "")
+            res = self.app_manager.respond_to_app(name, value)
+            self._send_json(res)
+
         elif path == "/api/target/set":
             target_ip = data.get("ip", "127.0.0.1").strip()
             target_port = int(data.get("port", 6668))
