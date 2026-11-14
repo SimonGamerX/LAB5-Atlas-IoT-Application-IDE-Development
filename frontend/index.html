@@ -47,14 +47,15 @@
     </div>
     <div id="hwRealControls" class="hw-group">
       <span class="hw-label">RPi IP:</span>
-      <input type="text" id="inputRpiIp" class="hw-input" placeholder="e.g. 192.168.1.150" value="127.0.0.1">
+      <input type="text" id="inputRpiIp" class="hw-input" placeholder="e.g. 192.168.1.50" value="192.168.1.50" style="width:130px;">
+      <button id="btnAutoDetect" class="btn btn-secondary btn-xs" title="Scan local network for Raspberry Pi">🔍 Detect Pi</button>
       <span class="hw-label">Port:</span>
-      <select id="selRpiPort" class="hw-select" style="width:170px;">
-        <option value="6668">6668 (Atlas Middleware)</option>
+      <select id="selRpiPort" class="hw-select" style="width:180px;">
+        <option value="6668">6668 (Atlas Middleware TCP)</option>
         <option value="8080">8080 (Lab 4 Part 1 HTTP)</option>
       </select>
       <button id="btnConnectHw" class="btn btn-primary btn-sm">Set Target</button>
-      <button id="btnTestHw" class="btn btn-secondary btn-sm" title="Test direct connection to Raspberry Pi">⚡ Test Breadboard</button>
+      <button id="btnTestHw" class="btn btn-success btn-sm" title="Boot Self-Test: Flashes Red/Green LEDs & Reads Sensors">⚡ Test Breadboard</button>
     </div>
     <div id="hwStatusFeedback" class="hw-feedback"></div>
   </div>

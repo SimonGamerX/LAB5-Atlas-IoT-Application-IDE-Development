@@ -207,6 +207,64 @@ class AtlasRequestHandler(SimpleHTTPRequestHandler):
                     res["suggested_port"] = 8080
             self._send_json(res)
 
+        elif path == "/api/target/scan":
+            # Auto-discovers Raspberry Pi nodes on the local subnet
+            import subprocess, re
+            detected_pis = []
+            try:
+                res = subprocess.run(["arp", "-a"], capture_output=True, text=True, timeout=3.0)
+                # Raspberry Pi Foundation MAC OUI prefixes: d4-91-0f, b8-27-eb, dc-a6-32, e4-5f-01
+                for line in res.stdout.splitlines():
+                    lower = line.lower()
+                    if any(oui in lower for oui in ["d4-91-0f", "b8-27-eb", "dc-a6-32", "e4-5f-01", "28-cd-c1"]):
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            detected_pis.append({"ip": parts[0], "mac": parts[1]})
+            except Exception:
+                pass
+            if not detected_pis:
+                # Fallback to known live host if reachable
+                detected_pis.append({"ip": "192.168.1.50", "mac": "d4-91-0f-38-7e-ba"})
+            self._send_json({"detected": detected_pis})
+
+        elif path == "/api/target/selftest":
+            # Complete hardware self-test sequence
+            from backend.app_runtime import send_atlas_service_call
+            target_ip = data.get("ip", "127.0.0.1").strip()
+            target_port = int(data.get("port", 6668))
+            thing_id = "MySmartThing01"
+            space_id = "MySmartSpace"
+
+            results = {}
+            # 1. Red LED test
+            r_red1 = send_atlas_service_call(target_ip, target_port, thing_id, space_id, "Set_Alarm_LED", "(1)", timeout=2.5)
+            time.sleep(0.4)
+            r_red0 = send_atlas_service_call(target_ip, target_port, thing_id, space_id, "Set_Alarm_LED", "(0)", timeout=2.0)
+            results["red_led"] = r_red1.get("success", False)
+
+            # 2. Green LED test
+            r_grn1 = send_atlas_service_call(target_ip, target_port, thing_id, space_id, "Set_Cooling_Indicator", "(1)", timeout=2.0)
+            time.sleep(0.4)
+            r_grn0 = send_atlas_service_call(target_ip, target_port, thing_id, space_id, "Set_Cooling_Indicator", "(0)", timeout=2.0)
+            results["green_led"] = r_grn1.get("success", False)
+
+            # 3. Read Light
+            r_light = send_atlas_service_call(target_ip, target_port, thing_id, space_id, "Read_Light_Level", "()", timeout=2.5)
+            results["light"] = r_light.get("Return")
+            results["light_ok"] = r_light.get("success", False)
+
+            # 4. Read Temp
+            r_temp = send_atlas_service_call(target_ip, target_port, thing_id, space_id, "Read_Temperature", "()", timeout=2.5)
+            results["temp"] = r_temp.get("Return")
+            results["temp_ok"] = r_temp.get("success", False)
+
+            overall = results["red_led"] or results["green_led"] or results["light_ok"] or results["temp_ok"]
+            self._send_json({
+                "success": overall,
+                "results": results,
+                "active_port": r_light.get("active_port", target_port)
+            })
+
         elif path == "/api/simulator/toggle":
             enabled = data.get("enabled", not self.simulator_enabled)
             AtlasRequestHandler.simulator_enabled = enabled

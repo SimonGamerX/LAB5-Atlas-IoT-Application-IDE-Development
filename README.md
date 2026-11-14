@@ -5,11 +5,11 @@ Visual Integrated Development Environment for the Atlas 3.0 IoT Platform.
 ## Quick Start
 
 ### 1. Launch with Physical Raspberry Pi (Breadboard)
-Find your Raspberry Pi IP (`hostname -I` on the Pi), then run:
+Find your Raspberry Pi IP (`hostname -I` on the Pi), ensure `./Atlas` is running on the Pi, then run:
 ```bash
 python run_ide.py <RPi_IP>
 ```
-*(Example: `python run_ide.py 192.168.1.100`)*
+*(Example: `python run_ide.py 192.168.1.50`)*
 
 ### 2. Launch with Simulator (Offline / Testing)
 ```bash

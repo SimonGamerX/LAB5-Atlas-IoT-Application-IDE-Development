@@ -35,50 +35,43 @@ def parse_service_result(raw_result: Any) -> Any:
     except ValueError:
         return s
 
-def send_atlas_service_call(host: str, port: int, thing_id: str, space_id: str,
-                            service_name: str, inputs: str = "()", timeout: float = 3.0) -> Dict[str, Any]:
-    """
-    Sends service call to the hardware:
-    - If port is 8080: uses HTTP POST /call (Lab 4 Part One C++ REST Server)
-    - Otherwise (default 6668): uses raw TCP socket JSON (Atlas Thing Middleware)
-    """
-    t0 = time.time()
-    clean_inputs = str(inputs).strip()
-    if not clean_inputs.startswith("("):
-        clean_inputs = f"({clean_inputs})"
-
-    # 1. LAB 4 PART ONE (HTTP REST on Port 8080)
-    if int(port) == 8080:
-        try:
-            url = f"http://{host}:{port}/call"
-            # Extract single param value from "(val)" -> "val"
-            param_val = clean_inputs.replace("(", "").replace(")", "").strip()
-            payload = json.dumps({"service_name": service_name, "param": param_val}).encode("utf-8")
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw_body = resp.read().decode("utf-8")
-                latency_ms = int((time.time() - t0) * 1000)
-                data = json.loads(raw_body)
-                val = parse_service_result(data.get("return_value", data.get("state", 0)))
-                return {
-                    "success": True,
-                    "Return": val,
-                    "Value": val,
-                    "Status": "SUCCESS" if data.get("status") == "SUCCESS" else "ERROR",
-                    "latency_ms": latency_ms,
-                    "raw": data
-                }
-        except Exception as e:
+def _send_http_8080(host: str, port: int, service_name: str, clean_inputs: str, timeout: float = 2.0, t0: float = None) -> Dict[str, Any]:
+    if t0 is None:
+        t0 = time.time()
+    try:
+        url = f"http://{host}:{port}/call"
+        param_val = clean_inputs.replace("(", "").replace(")", "").strip()
+        if service_name == "Read_Temperature" and not param_val:
+            param_val = "C"
+        payload = json.dumps({"service_name": service_name, "param": param_val}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw_body = resp.read().decode("utf-8")
             latency_ms = int((time.time() - t0) * 1000)
+            data = json.loads(raw_body)
+            val = parse_service_result(data.get("return_value", data.get("state", 0)))
             return {
-                "success": False,
-                "error": f"HTTP 8080 call to {host}:{port} failed: {e}",
+                "success": True,
+                "Return": val,
+                "Value": val,
+                "Status": "SUCCESS" if data.get("status") == "SUCCESS" else "ERROR",
                 "latency_ms": latency_ms,
-                "Return": None,
-                "Value": None
+                "active_port": 8080,
+                "raw": data
             }
+    except Exception as e:
+        latency_ms = int((time.time() - t0) * 1000)
+        return {
+            "success": False,
+            "error": f"HTTP {port} call to {host} failed: {e}",
+            "latency_ms": latency_ms,
+            "Return": None,
+            "Value": None
+        }
 
-    # 2. ATLAS THING MIDDLEWARE (Raw TCP Socket on Port 6668)
+def _send_tcp_6668(host: str, port: int, thing_id: str, space_id: str, service_name: str, clean_inputs: str, timeout: float = 2.5, t0: float = None) -> Dict[str, Any]:
+    if t0 is None:
+        t0 = time.time()
     payload = {
         "Tweet Type": "Service call",
         "Thing ID": thing_id or "MySmartThing01",
@@ -86,7 +79,6 @@ def send_atlas_service_call(host: str, port: int, thing_id: str, space_id: str,
         "Service Name": service_name,
         "Service Inputs": clean_inputs
     }
-
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -101,12 +93,10 @@ def send_atlas_service_call(host: str, port: int, thing_id: str, space_id: str,
         except json.JSONDecodeError:
             resp_data = {"raw": raw_resp}
 
-        # Check status from Atlas reply
         status_desc = resp_data.get("Status Description", "")
         status = resp_data.get("Status", "Successful")
         is_success = "unsuccessful" not in status.lower() and "incorrect" not in status_desc.lower()
 
-        # Atlas returns result in "Service Result"
         raw_val = resp_data.get("Service Result", resp_data.get("Return", resp_data.get("Value")))
         clean_val = parse_service_result(raw_val)
 
@@ -116,9 +106,9 @@ def send_atlas_service_call(host: str, port: int, thing_id: str, space_id: str,
             "Value": clean_val,
             "Status": "SUCCESS" if is_success else "ERROR",
             "latency_ms": latency_ms,
+            "active_port": 6668,
             "raw": resp_data
         }
-
     except Exception as e:
         latency_ms = int((time.time() - t0) * 1000)
         return {
@@ -128,6 +118,39 @@ def send_atlas_service_call(host: str, port: int, thing_id: str, space_id: str,
             "Return": None,
             "Value": None
         }
+
+def send_atlas_service_call(host: str, port: int, thing_id: str, space_id: str,
+                            service_name: str, inputs: str = "()", timeout: float = 3.0) -> Dict[str, Any]:
+    """
+    Sends service call to hardware with smart dual-mode auto-fallback:
+    - Automatically tries TCP port 6668 (Atlas Middleware) and HTTP port 8080 (REST Server).
+    """
+    t0 = time.time()
+    clean_inputs = str(inputs).strip()
+    if not clean_inputs.startswith("("):
+        clean_inputs = f"({clean_inputs})"
+
+    port = int(port)
+    if port == 8080:
+        res = _send_http_8080(host, 8080, service_name, clean_inputs, timeout=timeout, t0=t0)
+        if res.get("success"):
+            return res
+        if host != "127.0.0.1":
+            # Auto-fallback to TCP 6668
+            res_6668 = _send_tcp_6668(host, 6668, thing_id, space_id, service_name, clean_inputs, timeout=2.0, t0=t0)
+            if res_6668.get("success"):
+                return res_6668
+        return res
+    else:
+        res = _send_tcp_6668(host, port, thing_id, space_id, service_name, clean_inputs, timeout=timeout, t0=t0)
+        if res.get("success"):
+            return res
+        if host != "127.0.0.1":
+            # Auto-fallback to HTTP 8080
+            res_8080 = _send_http_8080(host, 8080, service_name, clean_inputs, timeout=2.0, t0=t0)
+            if res_8080.get("success"):
+                return res_8080
+        return res
 
 class AppExecutionContext:
     def __init__(self, app_def: Dict[str, Any], registry, on_event: Optional[Callable[[Dict[str, Any]], None]] = None):

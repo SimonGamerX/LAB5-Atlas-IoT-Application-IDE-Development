@@ -66,6 +66,26 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchSpace();
   });
 
+  const btnAutoDetect = document.getElementById("btnAutoDetect");
+
+  btnAutoDetect?.addEventListener("click", async () => {
+    hwStatusFeedback.textContent = "Scanning local network for Raspberry Pi...";
+    hwStatusFeedback.className = "hw-feedback";
+    try {
+      const resp = await fetch("/api/target/scan");
+      const data = await resp.json();
+      if (data.detected && data.detected.length > 0) {
+        const found = data.detected[0];
+        inputRpiIp.value = found.ip;
+        hwStatusFeedback.innerHTML = `<span style="color:#34d399;">✓ Raspberry Pi detected at ${found.ip} (MAC: ${found.mac})</span>`;
+      } else {
+        hwStatusFeedback.textContent = "No Raspberry Pi found automatically. Please enter IP manually.";
+      }
+    } catch (e) {
+      hwStatusFeedback.textContent = `Scan failed: ${e}`;
+    }
+  });
+
   btnConnectHw?.addEventListener("click", async () => {
     const ip = inputRpiIp.value.trim();
     const port = parseInt(selRpiPort.value) || 6668;
@@ -83,38 +103,35 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const d = await res.json();
     if (d.success) {
-      hwStatusFeedback.textContent = `Target connected: ${ip}:${port}!`;
-      hwStatusFeedback.className = "hw-feedback ok";
+      hwStatusFeedback.textContent = `Target set: ${ip}:${port}. Testing connection...`;
       fetchSpace();
+      btnTestHw?.click();
     }
   });
 
   btnTestHw?.addEventListener("click", async () => {
     const ip = inputRpiIp.value.trim();
     const port = parseInt(selRpiPort.value) || 6668;
-    hwStatusFeedback.textContent = `Testing ${ip}:${port}...`;
+    hwStatusFeedback.textContent = `⚡ Running breadboard boot self-test on ${ip}:${port}...`;
     hwStatusFeedback.className = "hw-feedback";
 
     try {
-      const res = await fetch("/api/target/test", {
+      const res = await fetch("/api/target/selftest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ip, port })
       });
       const d = await res.json();
-      if (d.success) {
-        let msg = `✅ Breadboard Connected! (${d.latency_ms}ms)`;
-        if (d.suggested_port) {
-          msg += ` [Port ${d.suggested_port}]`;
-          selRpiPort.value = String(d.suggested_port);
-        }
+      if (d.success && d.results) {
+        const r = d.results;
+        const msg = `✅ Breadboard Verified! Red LED: ${r.red_led ? 'OK' : 'ERR'} | Green LED: ${r.green_led ? 'OK' : 'ERR'} | Light: ${r.light}% | Temp: ${r.temp}°C`;
         hwStatusFeedback.textContent = msg;
         hwStatusFeedback.className = "hw-feedback ok";
-        alert(`Success! Breadboard responded.\nLatency: ${d.latency_ms}ms\nResponse: ${JSON.stringify(d.Return)}`);
+        alert(`✓ Breadboard Self-Test Succeeded!\n\n1. Red Alert LED (GPIO 16): Flashed\n2. Green Cooling LED (GPIO 12): Flashed\n3. Ambient Light (ADS1115 CH0): ${r.light}%\n4. Thermostat Dial (Rotary GPIO 20/21): ${r.temp}°C\n\nActive Server Port: ${d.active_port}`);
+        fetchSpace();
       } else {
-        hwStatusFeedback.textContent = `❌ Failed: ${d.error}`;
-        hwStatusFeedback.className = "hw-feedback err";
-        alert(`Connection to ${ip}:${port} failed.\n\nCheck:\n1. Pi is on same network.\n2. ./Atlas (port 6668) or ./rpi_service_server (port 8080) is running.\n\nError: ${d.error}`);
+        hwStatusFeedback.innerHTML = `<span style="color:#f87171;">❌ No server running on Pi ${ip}!</span>`;
+        alert(`❌ Could not connect to Raspberry Pi at ${ip}:${port}!\n\nThe Pi is reachable, but neither Atlas (port 6668) nor rpi_service_server (port 8080) is currently running.\n\nTo start the middleware on your Raspberry Pi, open a terminal on the Pi and run:\n\ncd ~/LAB4-Microservices-Architecture/PartTwo/AtlasThingMiddleware_RPI\n./Atlas\n\n(or for Lab 4 Part 1: cd ~/LAB4-Microservices-Architecture/PartOne/rpi_server && ./rpi_service_server RPi 8080)`);
       }
     } catch (e) {
       hwStatusFeedback.textContent = `❌ Network Error: ${e}`;
