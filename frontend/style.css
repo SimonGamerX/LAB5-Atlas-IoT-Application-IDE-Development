@@ -455,16 +455,58 @@ body {
 .rel-graph-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   font-size: 0.78rem;
+  flex-wrap: wrap;
+}
+
+.graph-source-toggle {
+  display: flex;
+  background: #090d16;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.graph-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.graph-toggle-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
+}
+.graph-toggle-btn.active {
+  background: #1e293b;
+  color: #38bdf8;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.graph-legend-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
 }
 
 .rel-legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: #cbd5e1;
 }
+
+.legend-line.purple { background: #a78bfa; }
+.legend-line.green { background: #10b981; }
 
 .rel-graph-canvas-wrapper {
   background: radial-gradient(#1e293b 1.2px, transparent 1.2px) 0 0 / 24px 24px, #0b1120;
@@ -486,10 +528,20 @@ body {
 /* SVG Node and Path styles */
 .graph-node {
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.2s ease;
 }
 .graph-node:hover {
   filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+}
+.graph-node.unused {
+  opacity: 0.38;
+}
+.graph-node.unused .graph-node-rect {
+  stroke-dasharray: 4 3;
+  stroke: #475569;
+}
+.graph-node.in-app .graph-node-rect {
+  stroke: #38bdf8;
 }
 
 .graph-edge {
@@ -503,6 +555,16 @@ body {
 .graph-edge.condition {
   stroke: #f59e0b;
   stroke-width: 2.5;
+}
+.graph-edge.sequential {
+  stroke: #a78bfa;
+  stroke-width: 2.2;
+  stroke-dasharray: 6 3;
+}
+.graph-edge.loop {
+  stroke: #10b981;
+  stroke-width: 2.4;
+  stroke-dasharray: 6 4;
 }
 .graph-edge.highlighted {
   stroke-width: 4.5 !important;
@@ -520,10 +582,33 @@ body {
 }
 .graph-edge-label-text {
   font-family: var(--code);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   text-anchor: middle;
   dominant-baseline: central;
+}
+
+.inspect-badge.sequential { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+.inspect-badge.loop { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+.rel-card.sequential { border-left: 4px solid #a78bfa; }
+.rel-card.loop { border-left: 4px solid #10b981; }
+.rel-card-tag.sequential { color: #a78bfa; }
+.rel-card-tag.loop { color: #10b981; }
+.rel-card-cross {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.app-compact-card.selected-app {
+  border-color: #38bdf8;
+  background: #1e293b;
 }
 
 .graph-node-rect {

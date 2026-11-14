@@ -41,7 +41,7 @@ In **Lab 5 (Group Project)**, the platform transitions to a complete, realistic,
 - **Tabs Architecture (No Numbers in Titles)**:
   - `📟 Things`: Displays both Raspberry Pi 4B nodes side-by-side with complete network identity, communication language, hosted entities, and direct ping node test buttons.
   - `⚡ Services & Functionalities`: Scaled table listing all microservices across both Things with Owning Thing tag, signatures, input parameters, output types, and direct breadboard triggers (`[🔴 ON]`, `[⚪ OFF]`, `[👁 Read Light]`, `[🌡 Read Temp]`, `[🟢 ON]`).
-  - `🕸 Relationships`: Features an **interactive SVG Topological Dependency Graph** displaying directed cubic-bezier curves connecting First Service (FS) to Second Service (SS) across both RPis, with color-coded Order-based and Condition-based links and pill labels, plus detailed relationship descriptor cards.
+  - `🕸 Relationships`: Features a **dynamic interactive SVG Topological Dependency Graph** generated directly in base of the application authored in **Apps & Editor** (mapping Type 1 sequential links, Type 2 order dependencies, Type 3 condition rules, and continuous loop returns) with a toggle to inspect the baseline Discovered Space Graph, live node activity status (`● In App` vs `Idle`), inspection details bar, and dynamic relationship descriptor cards.
   - `🧩 Apps & Editor`: Visual workflow pipeline builder alongside the relative real-time execution console.
 
 ### Requirement 3: IoT Application Editor

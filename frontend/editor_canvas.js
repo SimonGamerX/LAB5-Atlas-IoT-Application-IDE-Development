@@ -7,7 +7,29 @@ class IoTAppEditor {
   constructor() {
     this.steps = [];
     this.availableServices = [];
+    this.onChangeCallback = null;
     this.initModeToggles();
+    this.initMetaListeners();
+  }
+
+  initMetaListeners() {
+    document.getElementById("appInputName")?.addEventListener("input", () => this.notifyChange());
+    document.getElementById("chkAppLoop")?.addEventListener("change", () => this.notifyChange());
+    document.getElementById("numLoopInterval")?.addEventListener("input", () => this.notifyChange());
+  }
+
+  setOnChange(callback) {
+    this.onChangeCallback = callback;
+  }
+
+  notifyChange() {
+    if (typeof this.onChangeCallback === "function") {
+      try {
+        this.onChangeCallback(this.getAppDefinition());
+      } catch (err) {
+        console.error("Error in appEditor onChangeCallback:", err);
+      }
+    }
   }
 
   initModeToggles() {
@@ -94,6 +116,7 @@ class IoTAppEditor {
     this.steps.push(newStep);
     this.render();
     this.syncToJson();
+    this.notifyChange();
   }
 
   removeStep(index) {
@@ -101,6 +124,7 @@ class IoTAppEditor {
     this.steps.forEach((s, i) => { s.step_index = i + 1; });
     this.render();
     this.syncToJson();
+    this.notifyChange();
   }
 
   clear() {
@@ -110,6 +134,7 @@ class IoTAppEditor {
     document.getElementById("chkAppLoop").checked = false;
     this.render();
     this.syncToJson();
+    this.notifyChange();
   }
 
   loadApp(appData) {
@@ -121,6 +146,7 @@ class IoTAppEditor {
     document.getElementById("numLoopInterval").value = appData.loop_interval_sec || 3;
     this.render();
     this.syncToJson();
+    this.notifyChange();
   }
 
   getAppDefinition() {
@@ -156,6 +182,7 @@ class IoTAppEditor {
         document.getElementById("appInputName").value = parsed.name || "LoadedApp";
         document.getElementById("appInputDesc").value = parsed.description || "";
         document.getElementById("chkAppLoop").checked = !!parsed.loop;
+        this.notifyChange();
       }
     } catch (e) {}
   }
@@ -234,10 +261,13 @@ class IoTAppEditor {
       card.querySelectorAll("select, input").forEach(el => {
         const key = el.dataset.key;
         if (key && step[key] !== undefined) el.value = step[key];
-        el.addEventListener("change", (e) => {
+        const updateVal = (e) => {
           step[key] = e.target.value;
           this.syncToJson();
-        });
+          this.notifyChange();
+        };
+        el.addEventListener("change", updateVal);
+        el.addEventListener("input", updateVal);
       });
 
       card.querySelector(".btn-del-step")?.addEventListener("click", () => {

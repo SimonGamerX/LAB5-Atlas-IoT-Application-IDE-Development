@@ -7,6 +7,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let spaceData = null;
   let appEditor = new IoTAppEditor();
   let currentFilter = "all";
+  let currentGraphSource = "app"; // "app" (dynamic from editor) or "space" (static from tweets)
+  let cachedAppEdges = [];
+
+  // Whenever editor contents change, notify graph if viewing app source
+  appEditor.setOnChange((appDef) => {
+    const appNameEl = document.getElementById("lblActiveAppName");
+    if (appNameEl) appNameEl.textContent = appDef.name || "CustomApp";
+    if (currentGraphSource === "app") {
+      renderRelationships();
+    }
+  });
 
   // Tab switching
   document.querySelectorAll(".nav-tab").forEach(tab => {
@@ -16,6 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
       tab.classList.add("active");
       const target = document.getElementById(tab.dataset.tab);
       if (target) target.classList.add("active");
+      if (tab.dataset.tab === "tab-relationships") {
+        renderRelationships();
+      }
     });
   });
 
@@ -236,8 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       renderThings();
       renderFunctionalitiesTable();
-      renderRelationships();
       appEditor.setServices(spaceData.services);
+      renderRelationships();
     } catch (e) {
       console.warn("Could not fetch space data:", e);
     }
@@ -415,9 +429,110 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // TAB: Render Relationships with Interactive Topological Dependency Graph
+  window.setGraphSource = function(src) {
+    currentGraphSource = src;
+    const btnApp = document.getElementById("btnGraphSourceApp");
+    const btnSpace = document.getElementById("btnGraphSourceSpace");
+    if (btnApp) btnApp.classList.toggle("active", src === "app");
+    if (btnSpace) btnSpace.classList.toggle("active", src === "space");
+    renderRelationships();
+  };
+
   function renderRelationships() {
     renderRelationshipsGraph();
     renderRelationshipsCards();
+  }
+
+  function extractAppRelationships(appDef) {
+    const steps = (appDef && Array.isArray(appDef.steps)) ? appDef.steps : [];
+    const edges = [];
+    const used = new Set();
+
+    steps.forEach((step, idx) => {
+      if (step.type === "Type2") {
+        // Order-based: service_a succeeds -> run service_b
+        if (step.service_a && step.service_b) {
+          used.add(step.service_a);
+          used.add(step.service_b);
+          edges.push({
+            id: `app_step_${step.step_index}_order`,
+            relName: `Step #${step.step_index}: Order-based Dependency`,
+            stepIndex: step.step_index,
+            type: "order",
+            from: step.service_a,
+            to: step.service_b,
+            expr: `Order: Step #${step.step_index}`,
+            description: `Runs '${step.service_b}' only after '${step.service_a}' completes successfully.`
+          });
+        }
+      } else if (step.type === "Type3") {
+        // Condition-based: service_a returns value -> run service_b
+        if (step.service_a && step.service_b) {
+          used.add(step.service_a);
+          used.add(step.service_b);
+          const op = step.operator || ">";
+          const thresh = step.threshold !== undefined ? step.threshold : 28;
+          const unit = step.service_a.includes("Temp") ? "°C" : (step.service_a.includes("Light") ? "%" : "");
+          const shortName = step.service_a.replace("Read_", "").replace("_Level", "");
+          edges.push({
+            id: `app_step_${step.step_index}_cond`,
+            relName: `Step #${step.step_index}: Condition-based Rule`,
+            stepIndex: step.step_index,
+            type: "condition",
+            from: step.service_a,
+            to: step.service_b,
+            expr: `${shortName} ${op} ${thresh}${unit}`,
+            description: `Conditional rule: When '${step.service_a}' ${op} ${thresh}, trigger '${step.service_b}'.`
+          });
+        }
+      } else if (step.type === "Type1") {
+        // Sequential step
+        if (step.service) {
+          used.add(step.service);
+          if (idx < steps.length - 1) {
+            const nextStep = steps[idx + 1];
+            const nextService = nextStep.type === "Type1" ? nextStep.service : (nextStep.service_a || nextStep.service);
+            if (nextService && nextService !== step.service) {
+              used.add(nextService);
+              edges.push({
+                id: `app_step_${step.step_index}_seq_${nextStep.step_index}`,
+                relName: `Seq: Step #${step.step_index} → Step #${nextStep.step_index}`,
+                stepIndex: step.step_index,
+                type: "sequential",
+                from: step.service,
+                to: nextService,
+                expr: `Seq: #${step.step_index} → #${nextStep.step_index}`,
+                description: `Sequential transition: Step #${step.step_index} (${step.service}) transitions to Step #${nextStep.step_index} (${nextService}).`
+              });
+            }
+          }
+        }
+      }
+    });
+
+    // Loop cycle return edge
+    if (appDef && appDef.loop && steps.length > 0) {
+      const lastStep = steps[steps.length - 1];
+      const lastService = lastStep.type === "Type1" ? lastStep.service : (lastStep.service_b || lastStep.service_a);
+      const firstStep = steps[0];
+      const firstService = firstStep.type === "Type1" ? firstStep.service : (firstStep.service_a || firstStep.service);
+      if (lastService && firstService) {
+        used.add(lastService);
+        used.add(firstService);
+        edges.push({
+          id: "app_loop_cycle",
+          relName: `Continuous Loop Cycle (${appDef.loop_interval_sec || 3}s)`,
+          stepIndex: "Loop",
+          type: "loop",
+          from: lastService,
+          to: firstService,
+          expr: `⟲ Loop (${appDef.loop_interval_sec || 3}s)`,
+          description: `Application loop enabled: repeats execution every ${appDef.loop_interval_sec || 3} seconds.`
+        });
+      }
+    }
+
+    return { edges, usedServices: used };
   }
 
   function renderRelationshipsGraph() {
@@ -425,56 +540,75 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!svg || !spaceData) return;
     svg.innerHTML = "";
 
-    const rels = spaceData.relationships || [];
-    if (rels.length === 0) {
-      svg.innerHTML = `<text x="490" y="215" fill="#64748b" text-anchor="middle" font-size="14">No relationships available to draw graph.</text>`;
-      return;
-    }
+    const appDef = appEditor ? appEditor.getAppDefinition() : { name: "CurrentApp", steps: [] };
+    const appNameEl = document.getElementById("lblActiveAppName");
+    if (appNameEl) appNameEl.textContent = appDef.name || "CustomApp";
 
-    // Node layout definitions
-    // Left Col: Sensors (Col 1), Right Col: Actuators (Col 2)
+    const mainTitle = document.getElementById("lblGraphMainTitle");
+    const subTitle = document.getElementById("lblGraphSubtitle");
+    const subHeaderTitle = document.getElementById("lblRelDescriptorsTitle");
+
     const nodeCoords = {
-      "Read_Light_Level":      { x: 60,  y: 70,  w: 260, h: 74, icon: "👁", title: "Read_Light_Level", sub: "LightSensor (ADS1115 CH0)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Read_Temperature":      { x: 60,  y: 250, w: 260, h: 74, icon: "🌡", title: "Read_Temperature", sub: "TempSensor (Rotary Dial GPIO 20/21)", thing: "MySmartThing02", color: "#a78bfa" },
-      "Set_Alarm_LED":         { x: 580, y: 70,  w: 260, h: 74, icon: "🔴", title: "Set_Alarm_LED", sub: "AlarmLED (Red LED GPIO 16)", thing: "MySmartThing01", color: "#38bdf8" },
-      "Set_Cooling_Indicator": { x: 580, y: 250, w: 260, h: 74, icon: "🟢", title: "Set_Cooling_Indicator", sub: "CoolingLED (Green LED GPIO 12)", thing: "MySmartThing02", color: "#a78bfa" }
+      "Read_Light_Level":      { x: 60,  y: 70,  w: 250, h: 74, icon: "👁", title: "Read_Light_Level", sub: "LightSensor (ADS1115 CH0)", thing: "MySmartThing01", color: "#38bdf8" },
+      "Read_Temperature":      { x: 60,  y: 250, w: 250, h: 74, icon: "🌡", title: "Read_Temperature", sub: "TempSensor (Rotary Dial GPIO 20/21)", thing: "MySmartThing02", color: "#a78bfa" },
+      "Set_Alarm_LED":         { x: 600, y: 70,  w: 250, h: 74, icon: "🔴", title: "Set_Alarm_LED", sub: "AlarmLED (Red LED GPIO 16)", thing: "MySmartThing01", color: "#38bdf8" },
+      "Set_Cooling_Indicator": { x: 600, y: 250, w: 250, h: 74, icon: "🟢", title: "Set_Cooling_Indicator", sub: "CoolingLED (Green LED GPIO 12)", thing: "MySmartThing02", color: "#a78bfa" }
     };
 
-    // Edge layout connections & labels
-    const edgeDefs = [
-      {
-        relName: "Rel_Darkness_Alert",
-        from: "Read_Light_Level", to: "Set_Alarm_LED",
-        type: "condition",
-        expr: "Light < 15%",
-        fromPt: [320, 107], toPt: [580, 107],
-        mid: [450, 95]
-      },
-      {
-        relName: "Rel_Temp_Cooling_Order",
-        from: "Read_Temperature", to: "Set_Cooling_Indicator",
-        type: "order",
-        expr: "Order: After Read",
-        fromPt: [320, 275], toPt: [580, 275],
-        mid: [450, 255]
-      },
-      {
-        relName: "Rel_Overheat_Cooling",
-        from: "Read_Temperature", to: "Set_Cooling_Indicator",
-        type: "condition",
-        expr: "Temp > 28°C",
-        fromPt: [320, 299], toPt: [580, 299],
-        mid: [450, 319]
-      },
-      {
-        relName: "Rel_Cross_Thermal_Hazard",
-        from: "Read_Temperature", to: "Set_Alarm_LED",
-        type: "condition",
-        expr: "Temp > 35°C (Cross-RPi)",
-        fromPt: [320, 265], toPt: [580, 125],
-        mid: [450, 185]
-      }
-    ];
+    let edgesToRender = [];
+    let usedServices = new Set();
+
+    if (currentGraphSource === "app") {
+      const extracted = extractAppRelationships(appDef);
+      edgesToRender = extracted.edges;
+      usedServices = extracted.usedServices;
+      cachedAppEdges = edgesToRender;
+
+      if (mainTitle) mainTitle.innerHTML = `Application Dependency Graph: <span style="color:#38bdf8;">${appDef.name || 'Current App'}</span>`;
+      if (subTitle) subTitle.textContent = `Dynamically generated from ${appDef.steps ? appDef.steps.length : 0} execution steps in Apps & Editor ${appDef.loop ? `(Loop cycle: ${appDef.loop_interval_sec}s)` : ''}`;
+      if (subHeaderTitle) subHeaderTitle.textContent = `Active Application Relationship Descriptors (${edgesToRender.length})`;
+    } else {
+      // Space mode: use spaceData.relationships
+      if (mainTitle) mainTitle.textContent = `Discovered Space Relationships & Dependency Graph`;
+      if (subTitle) subTitle.textContent = `Discovered from Atlas IoT-DDL tweets on Raspberry Pi nodes`;
+      if (subHeaderTitle) subHeaderTitle.textContent = `Discovered Space Relationship Descriptors (Atlas IoT-DDL)`;
+      usedServices = new Set(["Read_Light_Level", "Read_Temperature", "Set_Alarm_LED", "Set_Cooling_Indicator"]);
+
+      edgesToRender = [
+        {
+          id: "space_rel_1",
+          relName: "Rel_Darkness_Alert",
+          from: "Read_Light_Level", to: "Set_Alarm_LED",
+          type: "condition",
+          expr: "Light < 15%",
+          description: "When ambient light drops below 15%, trigger Alarm LED ON"
+        },
+        {
+          id: "space_rel_2",
+          relName: "Rel_Temp_Cooling_Order",
+          from: "Read_Temperature", to: "Set_Cooling_Indicator",
+          type: "order",
+          expr: "Order: After Read",
+          description: "Service Set_Cooling_Indicator may run only after Read_Temperature completes"
+        },
+        {
+          id: "space_rel_3",
+          relName: "Rel_Overheat_Cooling",
+          from: "Read_Temperature", to: "Set_Cooling_Indicator",
+          type: "condition",
+          expr: "Temp > 28°C",
+          description: "When temperature exceeds 28°C, activate Cooling Indicator LED"
+        },
+        {
+          id: "space_rel_4",
+          relName: "Rel_Cross_Thermal_Hazard",
+          from: "Read_Temperature", to: "Set_Alarm_LED",
+          type: "condition",
+          expr: "Temp > 35°C (Cross-RPi)",
+          description: "Thermal Hazard Alert: Service Set_Alarm_LED (RPi 1) runs if Read_Temperature (RPi 2) > 35 C"
+        }
+      ];
+    }
 
     let svgContent = `
       <defs>
@@ -484,6 +618,12 @@ document.addEventListener("DOMContentLoaded", () => {
         <marker id="arrow-condition" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f59e0b" />
         </marker>
+        <marker id="arrow-sequential" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#a78bfa" />
+        </marker>
+        <marker id="arrow-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981" />
+        </marker>
         <linearGradient id="nodeGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#1e293b" />
           <stop offset="100%" stop-color="#0f172a" />
@@ -491,30 +631,122 @@ document.addEventListener("DOMContentLoaded", () => {
       </defs>
     `;
 
-    // 1. Draw Edges (Curves with Arrows and Midpoint Labels)
-    svgContent += `<g id="graphEdgesLayer">`;
-    edgeDefs.forEach((e, idx) => {
-      const isOrder = e.type === "order";
-      const strokeColor = isOrder ? "#38bdf8" : "#f59e0b";
-      const markerId = isOrder ? "arrow-order" : "arrow-condition";
-      const [x1, y1] = e.fromPt;
-      const [x2, y2] = e.toPt;
-      const dx = Math.abs(x2 - x1) * 0.5;
-      const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+    // Empty state check for application graph
+    if (edgesToRender.length === 0 && currentGraphSource === "app") {
+      svgContent += `
+        <g transform="translate(490, 200)" text-anchor="middle">
+          <circle cx="0" cy="-24" r="28" fill="#1e293b" stroke="#334155" />
+          <text x="0" y="-18" font-size="24" text-anchor="middle">🧩</text>
+          <text y="24" fill="#cbd5e1" font-size="16" font-weight="700">Canvas in Apps & Editor has no steps</text>
+          <text y="48" fill="#64748b" font-size="13">Switch to 'Apps & Editor' tab and add Type 1, 2, or 3 steps to dynamically generate relationships here.</text>
+        </g>
+      `;
+      svg.innerHTML = svgContent;
+      return;
+    }
 
-      const [mx, my] = e.mid;
-      const labelW = Math.max(80, e.expr.length * 7.5 + 16);
-      const labelH = 20;
+    // Group pair counts for dynamic curved offsets
+    const pairCounts = {};
+    edgesToRender.forEach(e => {
+      const k = `${e.from}__${e.to}`;
+      pairCounts[k] = (pairCounts[k] || 0) + 1;
+    });
+    const pairIndices = {};
+
+    // 1. Draw Edges Layer
+    svgContent += `<g id="graphEdgesLayer">`;
+
+    edgesToRender.forEach((e, idx) => {
+      const n1 = nodeCoords[e.from];
+      const n2 = nodeCoords[e.to];
+      if (!n1 || !n2) return;
+
+      const k = `${e.from}__${e.to}`;
+      const idxInPair = pairIndices[k] || 0;
+      pairIndices[k] = idxInPair + 1;
+      const totalInPair = pairCounts[k];
+      const offset = totalInPair > 1 ? (idxInPair - (totalInPair - 1) / 2) * 32 : 0;
+
+      let strokeColor = "#38bdf8";
+      let markerId = "arrow-order";
+      if (e.type === "order") {
+        strokeColor = "#38bdf8";
+        markerId = "arrow-order";
+      } else if (e.type === "condition") {
+        strokeColor = "#f59e0b";
+        markerId = "arrow-condition";
+      } else if (e.type === "sequential") {
+        strokeColor = "#a78bfa";
+        markerId = "arrow-sequential";
+      } else if (e.type === "loop") {
+        strokeColor = "#10b981";
+        markerId = "arrow-loop";
+      }
+
+      let d = "";
+      let mx = 490, my = 200;
+
+      if (e.type === "loop") {
+        // Return curve underneath
+        const x1 = n1.x + n1.w / 2;
+        const y1 = n1.y + n1.h;
+        const x2 = n2.x;
+        const y2 = n2.y + n2.h / 2;
+        d = `M ${x1} ${y1} C ${x1 - 40} 415, ${x2 - 50} 415, ${x2} ${y2}`;
+        mx = 450;
+        my = 405;
+      } else if (n1.x === n2.x) {
+        // Vertical connection along same column
+        if (n1.y < n2.y) {
+          const x1 = n1.x + 35;
+          const y1 = n1.y + n1.h;
+          const x2 = n2.x + 35;
+          const y2 = n2.y;
+          d = `M ${x1} ${y1} C ${n1.x - 30} ${y1 + 40}, ${n2.x - 30} ${y2 - 40}, ${x2} ${y2}`;
+          mx = n1.x - 25;
+          my = (y1 + y2) / 2;
+        } else {
+          const x1 = n1.x + 35;
+          const y1 = n1.y;
+          const x2 = n2.x + 35;
+          const y2 = n2.y + n2.h;
+          d = `M ${x1} ${y1} C ${n1.x - 30} ${y1 - 40}, ${n2.x - 30} ${y2 + 40}, ${x2} ${y2}`;
+          mx = n1.x - 25;
+          my = (y1 + y2) / 2;
+        }
+      } else if (n1.x < n2.x) {
+        // Left-to-Right connection
+        const x1 = n1.x + n1.w;
+        const y1 = n1.y + n1.h / 2 + offset * 0.45;
+        const x2 = n2.x;
+        const y2 = n2.y + n2.h / 2 + offset * 0.45;
+        const dx = Math.abs(x2 - x1) * 0.45;
+        d = `M ${x1} ${y1} C ${x1 + dx} ${y1 + offset}, ${x2 - dx} ${y2 + offset}, ${x2} ${y2}`;
+        mx = (x1 + x2) / 2;
+        my = (y1 + y2) / 2 + offset;
+      } else {
+        // Right-to-Left
+        const x1 = n1.x;
+        const y1 = n1.y + n1.h / 2;
+        const x2 = n2.x + n2.w;
+        const y2 = n2.y + n2.h / 2;
+        d = `M ${x1} ${y1} C ${x1 - 60} ${y1 - 40}, ${x2 + 60} ${y2 - 40}, ${x2} ${y2}`;
+        mx = (x1 + x2) / 2;
+        my = (y1 + y2) / 2 - 40;
+      }
+
+      const labelW = Math.max(86, (e.expr || "").length * 7.5 + 16);
+      const labelH = 22;
 
       svgContent += `
-        <g class="graph-edge-group" id="edge_grp_${idx}" data-rel="${e.relName}" data-from="${e.from}" data-to="${e.to}">
+        <g class="graph-edge-group" id="edge_grp_${e.id || idx}" data-edge-id="${e.id || idx}" data-from="${e.from}" data-to="${e.to}">
           <!-- Clickable fat hit-area -->
-          <path d="${d}" fill="none" stroke="transparent" stroke-width="16" style="cursor:pointer;" onmouseenter="highlightGraphEdge('${e.relName}')" onmouseleave="resetGraphHighlight()" />
+          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" style="cursor:pointer;" onmouseenter="highlightEdge('${e.id || idx}')" onmouseleave="resetGraphHighlight()" onclick="showEdgeDetails('${e.id || idx}')" />
           <!-- Visible Edge Path -->
-          <path id="edge_path_${idx}" class="graph-edge ${e.type}" d="${d}" marker-end="url(#${markerId})" />
+          <path id="edge_path_${e.id || idx}" class="graph-edge ${e.type}" d="${d}" marker-end="url(#${markerId})" />
           <!-- Edge Pill Label -->
-          <g transform="translate(${mx - labelW / 2}, ${my - labelH / 2})" style="cursor:pointer;" onmouseenter="highlightGraphEdge('${e.relName}')" onmouseleave="resetGraphHighlight()">
-            <rect class="graph-edge-label-bg" width="${labelW}" height="${labelH}" rx="4" stroke="${strokeColor}" />
+          <g transform="translate(${mx - labelW / 2}, ${my - labelH / 2})" style="cursor:pointer;" onmouseenter="highlightEdge('${e.id || idx}')" onmouseleave="resetGraphHighlight()" onclick="showEdgeDetails('${e.id || idx}')">
+            <rect class="graph-edge-label-bg" width="${labelW}" height="${labelH}" rx="5" stroke="${strokeColor}" />
             <text class="graph-edge-label-text" x="${labelW / 2}" y="${labelH / 2}" fill="${strokeColor}">${e.expr}</text>
           </g>
         </g>
@@ -522,22 +754,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     svgContent += `</g>`;
 
-    // 2. Draw Nodes
+    // 2. Draw Nodes Layer
     svgContent += `<g id="graphNodesLayer">`;
     Object.keys(nodeCoords).forEach(key => {
       const n = nodeCoords[key];
       const isThing2 = n.thing === "MySmartThing02";
+      const isUsed = usedServices.has(key);
+      const nodeClass = isUsed ? "in-app" : "unused";
+
       svgContent += `
-        <g class="graph-node" id="node_${key}" data-node="${key}" onmouseenter="highlightGraphNode('${key}')" onmouseleave="resetGraphHighlight()">
+        <g class="graph-node ${nodeClass}" id="node_${key}" data-node="${key}" onmouseenter="highlightGraphNode('${key}')" onmouseleave="resetGraphHighlight()">
           <rect class="graph-node-rect" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8" />
           <text x="${n.x + 16}" y="${n.y + 42}" font-size="22">${n.icon}</text>
           <text class="graph-node-title" x="${n.x + 50}" y="${n.y + 26}">${n.title}</text>
           <text class="graph-node-sub" x="${n.x + 50}" y="${n.y + 44}">${n.sub}</text>
           <text class="graph-node-thing" x="${n.x + 50}" y="${n.y + 60}" fill="${isThing2 ? '#c4b5fd' : '#38bdf8'}">${n.thing}</text>
+          <text x="${n.x + n.w - 14}" y="${n.y + 22}" fill="${isUsed ? '#10b981' : '#64748b'}" font-size="${isUsed ? '11' : '10'}" font-weight="${isUsed ? 'bold' : 'normal'}" text-anchor="end">${isUsed ? '● In App' : 'Idle'}</text>
           
           <!-- Port dots -->
-          <circle cx="${n.x}" cy="${n.y + n.h / 2}" r="4" fill="#38bdf8" />
-          <circle cx="${n.x + n.w}" cy="${n.y + n.h / 2}" r="4" fill="#38bdf8" />
+          <circle cx="${n.x}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#38bdf8' : '#64748b'}" />
+          <circle cx="${n.x + n.w}" cy="${n.y + n.h / 2}" r="4" fill="${isUsed ? '#38bdf8' : '#64748b'}" />
         </g>
       `;
     });
@@ -546,42 +782,67 @@ document.addEventListener("DOMContentLoaded", () => {
     svg.innerHTML = svgContent;
   }
 
-  window.highlightGraphEdge = function(relName) {
-    if (!spaceData) return;
-    const rel = (spaceData.relationships || []).find(r => r.name === relName);
-    const bar = document.getElementById("graphRelDetails");
+  window.highlightEdge = function(edgeId) {
+    const edgeGroup = document.getElementById(`edge_grp_${edgeId}`);
+    if (!edgeGroup) return;
+    const from = edgeGroup.getAttribute("data-from");
+    const to = edgeGroup.getAttribute("data-to");
 
-    if (rel && bar) {
-      const isOrder = (rel.relation_type || "").toLowerCase().includes("order");
-      bar.style.display = "flex";
-      bar.innerHTML = `
-        <div>
-          <span class="inspect-title">${rel.name}</span>
-          <span class="inspect-badge ${isOrder ? 'order' : 'condition'}">${rel.relation_type}</span>
-          <span style="color:#cbd5e1; margin-left:12px;"><strong>${rel.fs_name}</strong> &rarr; <strong>${rel.ss_name}</strong></span>
-        </div>
-        <div style="color:#94a3b8; font-size:0.75rem;">
-          ${rel.description} &bull; Thing: <code style="color:#38bdf8;">${rel.thing_id}</code>
-        </div>
-      `;
-    }
-
-    // Highlight specific edge in SVG
     document.querySelectorAll(".graph-edge-group").forEach(el => {
-      const match = el.getAttribute("data-rel") === relName;
+      const match = el.getAttribute("data-edge-id") === edgeId;
       el.querySelector(".graph-edge").classList.toggle("highlighted", match);
       el.classList.toggle("dimmed", !match);
     });
+
     document.querySelectorAll(".graph-node").forEach(el => {
       const nodeName = el.getAttribute("data-node");
-      const match = rel && (rel.fs_name === nodeName || rel.ss_name === nodeName);
+      const match = nodeName === from || nodeName === to;
       el.classList.toggle("active-node", match);
     });
+
+    showEdgeDetails(edgeId);
+  };
+
+  window.showEdgeDetails = function(edgeId) {
+    const bar = document.getElementById("graphRelDetails");
+    if (!bar) return;
+
+    let e = cachedAppEdges.find(item => item.id === edgeId);
+    if (!e && currentGraphSource === "space") {
+      const rels = spaceData.relationships || [];
+      const r = rels.find(item => item.name === edgeId || edgeId.includes(item.name));
+      if (r) {
+        e = {
+          relName: r.name,
+          type: r.relation_type.toLowerCase().includes("order") ? "order" : "condition",
+          from: r.fs_name,
+          to: r.ss_name,
+          description: r.description
+        };
+      }
+    }
+    if (!e) return;
+
+    const fromThing = e.from.includes("Temp") || e.from.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+    const toThing = e.to.includes("Temp") || e.to.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+    const isCross = fromThing !== toThing;
+
+    bar.style.display = "flex";
+    bar.innerHTML = `
+      <div>
+        <span class="inspect-title">${e.relName}</span>
+        <span class="inspect-badge ${e.type}">${e.type.toUpperCase()}</span>
+        <span style="color:#cbd5e1; margin-left:12px;"><strong>${e.from}</strong> (${fromThing}) &rarr; <strong>${e.to}</strong> (${toThing})</span>
+        ${isCross ? '<span class="rel-card-cross" style="margin-left:8px;">⚡ Cross-RPi Distributed</span>' : ''}
+      </div>
+      <div style="color:#94a3b8; font-size:0.75rem;">
+        ${e.description}
+      </div>
+    `;
   };
 
   window.highlightGraphNode = function(nodeName) {
     if (!spaceData) return;
-    const connectedRels = (spaceData.relationships || []).filter(r => r.fs_name === nodeName || r.ss_name === nodeName);
 
     document.querySelectorAll(".graph-edge-group").forEach(el => {
       const from = el.getAttribute("data-from");
@@ -593,23 +854,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".graph-node").forEach(el => {
       const n = el.getAttribute("data-node");
-      const match = n === nodeName || connectedRels.some(r => r.fs_name === n || r.ss_name === n);
+      const match = n === nodeName;
       el.classList.toggle("active-node", match);
     });
-
-    const bar = document.getElementById("graphRelDetails");
-    if (bar && connectedRels.length > 0) {
-      bar.style.display = "flex";
-      bar.innerHTML = `
-        <div>
-          <span class="inspect-title">Service: ${nodeName}</span>
-          <span style="color:#38bdf8; margin-left:10px;">${connectedRels.length} linked relationship(s)</span>
-        </div>
-        <div style="color:#94a3b8; font-size:0.75rem;">
-          Linked to: ${connectedRels.map(r => r.fs_name === nodeName ? `&rarr; ${r.ss_name}` : `&larr; ${r.fs_name}`).join(", ")}
-        </div>
-      `;
-    }
   };
 
   window.resetGraphHighlight = function() {
@@ -627,31 +874,66 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!grid || !spaceData) return;
     grid.innerHTML = "";
 
-    const rels = spaceData.relationships || [];
-    if (rels.length === 0) {
-      grid.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>No relationships discovered yet.</p>";
-      return;
-    }
+    if (currentGraphSource === "app") {
+      if (cachedAppEdges.length === 0) {
+        grid.innerHTML = "<p style='color:#64748b; font-size:0.82rem; padding:10px;'>No relationship steps authored in the application yet. Click constructs on 'Apps & Editor' tab to add steps.</p>";
+        return;
+      }
 
-    rels.forEach(rel => {
-      const isOrder = rel.relation_type.toLowerCase().includes("order");
-      const card = document.createElement("div");
-      card.className = `rel-card ${isOrder ? 'order' : 'condition'}`;
-      card.innerHTML = `
-        <div class="rel-card-top">
-          <span class="rel-card-title">${rel.name}</span>
-          <span class="rel-card-tag ${isOrder ? 'order' : 'condition'}">${rel.relation_type}</span>
-        </div>
-        <p style="color:#94a3b8; font-size:0.78rem;">${rel.description}</p>
-        <div class="rel-arrow-display">
-          ${rel.fs_name} &rarr; ${rel.ss_name}
-        </div>
-        <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">
-          Thing: <code style="color:#38bdf8;">${rel.thing_id}</code> &bull; Category: ${rel.category}
-        </div>
-      `;
-      grid.appendChild(card);
-    });
+      cachedAppEdges.forEach(e => {
+        const fromThing = e.from.includes("Temp") || e.from.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+        const toThing = e.to.includes("Temp") || e.to.includes("Cooling") ? "MySmartThing02" : "MySmartThing01";
+        const isCross = fromThing !== toThing;
+
+        const card = document.createElement("div");
+        card.className = `rel-card ${e.type}`;
+        card.innerHTML = `
+          <div class="rel-card-top">
+            <span class="rel-card-title">${e.relName}</span>
+            <span class="rel-card-tag ${e.type}">${e.type.toUpperCase()}</span>
+          </div>
+          <p style="color:#94a3b8; font-size:0.78rem;">${e.description}</p>
+          <div class="rel-arrow-display">
+            ${e.from} &rarr; ${e.to}
+          </div>
+          <div style="font-size:0.72rem; color:#64748b; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+            <span>From: <code style="color:#38bdf8;">${fromThing}</code> &bull; To: <code style="color:#a78bfa;">${toThing}</code></span>
+            ${isCross ? '<span class="rel-card-cross">⚡ Cross-RPi</span>' : ''}
+          </div>
+        `;
+
+        card.addEventListener("mouseenter", () => window.highlightEdge(e.id));
+        card.addEventListener("mouseleave", () => window.resetGraphHighlight());
+        grid.appendChild(card);
+      });
+    } else {
+      // Space mode
+      const rels = spaceData.relationships || [];
+      if (rels.length === 0) {
+        grid.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>No relationships discovered yet.</p>";
+        return;
+      }
+
+      rels.forEach(rel => {
+        const isOrder = rel.relation_type.toLowerCase().includes("order");
+        const card = document.createElement("div");
+        card.className = `rel-card ${isOrder ? 'order' : 'condition'}`;
+        card.innerHTML = `
+          <div class="rel-card-top">
+            <span class="rel-card-title">${rel.name}</span>
+            <span class="rel-card-tag ${isOrder ? 'order' : 'condition'}">${rel.relation_type}</span>
+          </div>
+          <p style="color:#94a3b8; font-size:0.78rem;">${rel.description}</p>
+          <div class="rel-arrow-display">
+            ${rel.fs_name} &rarr; ${rel.ss_name}
+          </div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">
+            Thing: <code style="color:#38bdf8;">${rel.thing_id}</code> &bull; Category: ${rel.category}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
   }
 
   window.pingThingNode = async (thingId, ip, port, resSpanId) => {
@@ -709,28 +991,51 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("labelWorkingDir").textContent = data.working_dir;
       document.getElementById("countApps").textContent = data.apps.length;
 
+      // Auto-load default application on startup if editor is currently empty
+      if (appEditor && appEditor.steps.length === 0 && data.apps && data.apps.length > 0) {
+        const defaultApp = data.apps.find(a => a.name === "CircadianComfortGuard") || data.apps[0];
+        appEditor.loadApp(defaultApp);
+        if (currentGraphSource === "app") {
+          renderRelationships();
+        }
+      }
+
       const container = document.getElementById("savedAppsList");
       if (!container) return;
       container.innerHTML = "";
 
+      const activeAppName = appEditor ? appEditor.getAppDefinition().name : "";
+
       data.apps.forEach(app => {
+        const isCurrent = activeAppName === app.name;
         const card = document.createElement("div");
-        card.className = "app-compact-card";
+        card.className = `app-compact-card ${isCurrent ? 'selected-app' : ''}`;
         card.innerHTML = `
           <div class="app-compact-title">
             <span>${app.name}</span>
             <span class="app-compact-file">${app.filename}</span>
           </div>
           <div class="app-compact-btns">
+            <button class="btn btn-secondary btn-xs btn-edit" title="Load into Editor & Generate Graph">✎ Edit</button>
             <button class="btn btn-primary btn-xs btn-run">▶ Run</button>
             <button class="btn btn-secondary btn-xs btn-stop">■ Stop</button>
             <button class="btn btn-danger btn-xs btn-del">✕</button>
           </div>
         `;
 
-        card.addEventListener("dblclick", () => {
+        const loadThisApp = () => {
           appEditor.loadApp(app);
-          alert(`Application '${app.name}' loaded into Editor.`);
+          document.querySelectorAll(".app-compact-card").forEach(c => c.classList.remove("selected-app"));
+          card.classList.add("selected-app");
+          if (currentGraphSource === "app") {
+            renderRelationships();
+          }
+        };
+
+        card.addEventListener("click", loadThisApp);
+        card.querySelector(".btn-edit")?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          loadThisApp();
         });
 
         card.querySelector(".btn-run").addEventListener("click", async (e) => {

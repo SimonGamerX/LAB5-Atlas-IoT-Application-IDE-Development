@@ -142,12 +142,16 @@
     <section id="tab-relationships" class="tab-panel">
       <div class="panel-header">
         <div>
-          <h2>Discovered Space Relationships & Dependency Graph</h2>
-          <p>Topological graph and descriptors of Order-based dependencies (B after A) and Condition-based rules (B conditionally after A return value).</p>
+          <h2>Dynamic Relationships & Topological Dependency Graph</h2>
+          <p id="lblTabRelSub">Visual mapping of Order-based dependencies, Condition-based rules, and Sequential pipeline transitions.</p>
         </div>
-        <div class="legend">
-          <span><span class="legend-line blue"></span> Order-based</span>
-          <span><span class="legend-line gold"></span> Condition-based</span>
+        <div class="graph-source-toggle">
+          <button id="btnGraphSourceApp" class="graph-toggle-btn active" onclick="setGraphSource('app')">
+            ⚡ App Graph: <strong id="lblActiveAppName">CircadianComfortGuard</strong>
+          </button>
+          <button id="btnGraphSourceSpace" class="graph-toggle-btn" onclick="setGraphSource('space')">
+            🪐 Discovered Space Graph
+          </button>
         </div>
       </div>
 
@@ -155,13 +159,17 @@
       <div class="rel-graph-container">
         <div class="rel-graph-header">
           <div class="rel-graph-title">
-            <span class="graph-icon">🕸</span> Topological Dependency Graph
-            <span class="rel-graph-subtitle">Visual mapping of First Service (FS) &rarr; Second Service (SS) across Things</span>
+            <span class="graph-icon">🕸</span> <span id="lblGraphMainTitle">Application Dependency Graph</span>
+            <span class="rel-graph-subtitle" id="lblGraphSubtitle">Dynamic mapping derived from the current application composed in Apps & Editor</span>
           </div>
           <div class="rel-graph-controls">
-            <span class="rel-legend-item"><span class="legend-line blue"></span> Order-based</span>
-            <span class="rel-legend-item"><span class="legend-line gold"></span> Condition-based</span>
-            <button id="btnResetGraph" class="btn btn-secondary btn-xs" onclick="renderRelationships()">↺ Reset Graph</button>
+            <div class="graph-legend-group">
+              <span class="rel-legend-item"><span class="legend-line blue"></span> Order</span>
+              <span class="rel-legend-item"><span class="legend-line gold"></span> Condition</span>
+              <span class="rel-legend-item"><span class="legend-line purple"></span> Sequential</span>
+              <span class="rel-legend-item"><span class="legend-line green"></span> Loop</span>
+            </div>
+            <button id="btnResetGraph" class="btn btn-secondary btn-xs" onclick="renderRelationships()">↺ Refresh</button>
           </div>
         </div>
         <div id="relationshipsGraphWrapper" class="rel-graph-canvas-wrapper">
@@ -173,7 +181,7 @@
       </div>
 
       <div class="panel-subheader" style="margin: 24px 0 12px 0;">
-        <h3 style="font-size: 0.95rem; color: #cbd5e1; font-weight:600;">Discovered Relationship Descriptors</h3>
+        <h3 id="lblRelDescriptorsTitle" style="font-size: 0.95rem; color: #cbd5e1; font-weight:600;">Active Application Relationship Descriptors</h3>
       </div>
       <div id="relationshipsGrid" class="relationships-grid">
         <!-- Rendered dynamically -->

@@ -46,11 +46,18 @@ http://localhost:5050
   - `[🟢 ON]` / `[⚪ OFF]` (controls physical Green Cooling LED on GPIO 12 on RPi 2)
 
 ### 🕸 Relationships
-- **Topological Dependency Graph**: Interactive SVG visualization with directed cubic-bezier curves, glowing links, and pill expression labels connecting First Service (FS) to Second Service (SS) across both RPis:
-  - 🟦 **Order-based dependencies** (e.g. `Read_Temperature` $\rightarrow$ `Set_Cooling_Indicator`)
-  - 🟨 **Condition-based rules** (e.g. `Light < 15%`, `Temp > 28°C`, and cross-thing hazard `Temp > 35°C`)
-- Interactive hover effects highlighting linked nodes and displaying live inspection details.
-- Relationship Descriptors Catalog cards underneath the graph.
+- **Dynamic Application & Space Topological Dependency Graph**:
+  - **Dynamic Generation from Apps & Editor**: Automatically generates the interactive topological SVG dependency graph directly from the application currently loaded or composed in the **Apps & Editor** tab.
+  - **Construct Mapping**:
+    - 🟦 **Order-based dependencies** (Type 2 steps: e.g. `Read_Temperature` $\rightarrow$ `Set_Cooling_Indicator` on success)
+    - 🟨 **Condition-based rules** (Type 3 steps: e.g. `Temp > 27°C`, `Light < 20%`, and cross-thing hazard `Temp > 35°C`)
+    - 🟪 **Sequential transitions** (Type 1 steps: step transitions $S_1 \rightarrow S_2$)
+    - 🟩 **Loop cycle** (when continuous looping is enabled: returns from final actuator back to source sensor)
+  - **Dual Source Switcher**:
+    - `[⚡ App Graph: <AppName>]`: Live dynamic topology generated from the editor canvas with active node badges (`● In App`) and idle node dimming.
+    - `[🪐 Discovered Space Graph]`: The underlying Atlas Smart Space specification discovered via IoT-DDL tweets.
+  - **Interactive Features**: Hovering over edges or nodes highlights dependencies with glowing paths and opens detailed inspection in the details bar; dynamic relationship cards below update automatically.
+  - **Real-Time Synchronization**: Any addition, deletion, parameter change, or app switch in the Apps & Editor section immediately updates the graph.
 
 ### 🧩 Apps & Editor
 - **Left Sidebar**: Saved applications (`CircadianComfortGuard`, `Lab4DemoApp`), + New App, Upload, and construct buttons (`+ Type 1`, `+ Type 2`, `+ Type 3`).
