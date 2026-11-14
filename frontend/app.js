@@ -295,10 +295,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = document.createElement("div");
       card.className = "thing-card";
 
-      const hiddenThingsTabEntities = new Set(["TempSensor", "CoolingLED"]);
-      const entities = (spaceData.entities || []).filter(
-        e => e.thing_id === thing.thing_id && !hiddenThingsTabEntities.has(e.name)
-      );
+      const hiddenOnPrimary = new Set(["TempSensor", "CoolingLED"]);
+      const entities = (spaceData.entities || []).filter(e => {
+        if (e.thing_id !== thing.thing_id) return false;
+        if (isThing1 && hiddenOnPrimary.has(e.name)) return false;
+        return true;
+      });
       const tags = entities.map(e => {
         const isSens = (e.entity_type || "").toLowerCase().includes("sensor");
         return `<span class="entity-tag ${isSens ? 'sensor' : 'actuator'}">${e.name} <small>(${e.entity_type})</small></span>`;
